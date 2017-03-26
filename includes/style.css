@@ -1,0 +1,55 @@
+.card {
+	background-color: #DDD;
+	padding: 10px;
+}
+
+.card h3 {
+	color:#FFF;
+	text-align: left;
+	margin: -10px -10px 10px -10px;
+	background-color:#00F;
+	padding: 10px;
+}
+
+.card p {
+	text-align: left;
+	background-color:#EEE;
+	padding:5px;
+}
+
+.nucleo {
+	float: left;
+	border: 1px solid #FFF;
+	background-color: #009;
+	color: #FFF; font-weight: bold;
+	text-align: center;
+	padding: 13px;
+	width:50px; height:50px;
+}
+
+.rodape {
+	height:150px;
+}
+
+.menu-suspenso {
+	position: fixed;
+	bottom:0;
+	margin:0;
+	bottom:20px;
+	right:20px;
+	width:100%;
+}
+
+.menu-suspenso .option {
+	background-color:#009;
+	color: #FFF;
+	font-weight: bold;
+	float: right;
+	padding-top:14px;
+	margin:10px;
+	height:60px; width: 60px;
+	border-radius: 100%;
+	font-size:24px;
+	text-align: center;
+	cursor: pointer;
+}

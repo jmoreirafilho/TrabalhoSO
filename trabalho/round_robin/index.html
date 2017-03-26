@@ -2,8 +2,9 @@
 <html ng-app="view">
 <head>
 	<title>Round Robin c/ Fila de Prioridade</title>
-	<link rel="stylesheet" type="text/css" href="../scripts/bootstrap.min.css">
-	<link rel="stylesheet" type="text/css" href="../scripts/style.css">
+	<link rel="stylesheet" type="text/css" href="../../includes/font-awesome/css/font-awesome.min.css">
+	<link rel="stylesheet" type="text/css" href="../../includes/bootstrap.min.css">
+	<link rel="stylesheet" type="text/css" href="../../includes/style.css">
 </head>
 <body ng-controller="viewController">
 	<div class="container-fluid">
@@ -15,7 +16,7 @@
 
 		<div class="row">
 			<div class="col-xs-12">
-				<h3>Processando</h3>
+				<h3>Cores</h3>
 				<div class="nucleo" ng-repeat="processo in processosExecutando">
 					{{processo.nome}}
 				</div>
@@ -23,30 +24,44 @@
 
 			<div class="col-xs-12">
 				<h3>Processos Aptos</h3>
-				<div class="nucleo" ng-repeat="processo in processosAptos">
-					{{processo.nome}}
+				<div class="row" ng-repeat="processo in processosAptos">
+					<div class="col-xs-12">
+						<div class="nucleo" ng-repeat="fila in processo">
+							{{fila.nome}}
+						</div>
+					</div>
 				</div>
 			</div>
 
 			<div class="col-xs-12">
 				<h3>Processos Abortados</h3>
-				<div class="nucleo" ng-repeat="processo in processosAptos">
+				<div class="nucleo" ng-repeat="processo in processosAbortados">
 					{{processo.nome}}
 				</div>
 			</div>
 
 			<div class="col-xs-12">
 				<h3>Processos Finalizados</h3>
-				<div class="nucleo" ng-repeat="processo in processosAptos">
+				<div class="nucleo" ng-repeat="processo in processosFinalizados">
 					{{processo.nome}}
 				</div>
 			</div>
 		</div>
-
 	</div>
 
-	<script type="text/javascript" src="../../jquery.min.js"></script>
-	<script type="text/javascript" src="../../angular.min.js"></script>
+	<div class="rodape"></div>
+	
+	<div class="menu-suspenso">
+		<div class="option" ng-click="adicionaProcesso()">
+			<i class="fa fa-plus"></i>
+		</div>
+		<div class="option" ng-click="iniciaProcessamento()">
+			<i class="fa fa-play"></i>
+		</div>
+	</div>
+
+	<script type="text/javascript" src="../../includes/jquery.min.js"></script>
+	<script type="text/javascript" src="../../includes/angular.min.js"></script>
 	<script type="text/javascript" src="roundRobin.js"></script>
 </body>
 </html>

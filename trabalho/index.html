@@ -3,6 +3,7 @@
 <head>
 	<title>Inicio</title>
 	<link rel="stylesheet" type="text/css" href="scripts/bootstrap.min.css">
+	<link rel="stylesheet" type="text/css" href="scripts/style.css">
 </head>
 <body>
 	
@@ -15,23 +16,132 @@
 		<hr>
 		<div class="row">
 			<div class="col-sm-4">
-				<h3>Round Robin</h3>
-				<p>Descrição</p>
-				<a href="round_robin/index.html">
-					<button class="btn btn-primary">Executar</button>
-				</a>
+				<div class="card text-right">
+					<h3>Round Robin c/ Fila de Prioridade</h3>
+					<p><strong>DESCRIÇÃO:</strong><br/>&emsp;Nesse algorítmo, cada processo ficará no core durante um tempo limitado, chamado de <strong>Quantum</strong>. Quando o tempo de um processo acabar, ele deve voltar para o final da sua fila de "aptos" até ser escalonado novamente.<br />&emsp;Além disso, a fila de "aptos" deverá apresentar várias filas de prioridades, onde cada fila deverá ter um <strong>Fator</strong> que, multiplicado ao <strong>Quantum</strong>, aumentará o tempo que o processo fica no processador.</p>
+					<button class="btn btn-primary" data-toggle="modal" data-target="#parametrosRR">Parametrizar</button>
+				</div>
 			</div>
 			<div class="col-sm-4">
-				<h3>Least Time To Go</h3>
-				<p>Descrição</p>
-				<a href="ltg/index.html">
-					<button class="btn btn-primary">Executar</button>
-				</a>
+				<div class="card text-right">
+					<h3>Least Time to Go (LTG)</h3>
+					<p>Descrição</p>
+					<button class="btn btn-primary" data-toggle="modal" data-target="#parametrosLTG">Parametrizar</button>
+				</div>
 			</div>
 		</div>
-
 	</div>
+
+	<!-- INICIO MODAL RR -->
+	<div class="modal fade" id="parametrosRR" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+					<h4 class="modal-title" id="myModalLabel">Parâmetros - Round Robin c/ Fila de Prioridade</h4>
+				</div>
+				<div class="modal-body">
+					<div class="row">
+						<div class="col-sm-6">
+							<div class="form-group">
+								<label>Numero de Núcleos</label>
+								<input type="text" class="form-control" id="rr_qtd_nucleos" placeholder="Número de 1 a 64">
+							</div>
+						</div>
+						<div class="col-sm-6">
+							<div class="form-group">
+								<label>Valor do Quantum</label>
+								<input type="text" class="form-control" id="rr_quantum" placeholder="Número de 2 a 20">
+							</div>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-sm-6">
+							<div class="form-group">
+								<label>Qtd. Inicial de Processos</label>
+								<input type="text" class="form-control" id="rr_qtd_processos" placeholder="Valor Numérico">
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+					<button type="button" class="btn btn-primary" onclick="executarRR()">Executar</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- FIM MODAL RR -->
+
+	<!-- INICIO MODAL LTG -->
+	<div class="modal fade" id="parametrosLTG" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+					<h4 class="modal-title" id="myModalLabel">Parâmetros - Least Time to Go</h4>
+				</div>
+				<div class="modal-body">
+					<div class="row">
+						<div class="col-sm-6">
+							<div class="form-group">
+								<label>Numero de Núcleos</label>
+								<input type="text" class="form-control" id="ltg_qtd_nucleos" placeholder="Número de 1 a 64">
+							</div>
+						</div>
+						<div class="col-sm-6">
+							<div class="form-group">
+								<label>Valor do Quantum</label>
+								<input type="text" class="form-control" id="ltg_quantum" placeholder="Número de 2 a 20">
+							</div>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-sm-6">
+							<div class="form-group">
+								<label>Qtd. Inicial de Processos</label>
+								<input type="text" class="form-control" id="ltg_qtd_processos" placeholder="Valor Numérico">
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+					<button type="button" class="btn btn-primary" onclick="executarLTG()">Executar</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- FIM MODAL LTG -->
+
 	<script type="text/javascript" src="../jquery.min.js"></script>
 	<script type="text/javascript" src="../bootstrap.min.js"></script>
+	<script type="text/javascript">
+		function formEstaValido (dados) {
+			if (dados.qtdNucleos > 0
+				&& dados.quantum > 0
+				&& dados.qtdProcIni > 0) {
+				return true;
+			}
+			window.alert("Preencha todos os campos corretamente!");
+			return false;
+		}
+
+		function executarRR() {
+			var dados = {
+				qtdNucleos: $("#rr_qtd_nucleos").val(),
+				quantum: $("#rr_quantum").val(),
+				qtdProcIni: $("#rr_qtd_processos").val()
+			};
+
+			if(formEstaValido(dados)){
+				var stringDados = "p1="+dados.qtdNucleos+"&p2="+dados.quantum+"&p3="+dados.qtdProcIni;
+				window.location = "round_robin/index.html?"+stringDados;
+			}
+		}
+		function executarLTG() {
+			window.alert("oi");
+		}
+	</script>
 </body>
 </html>

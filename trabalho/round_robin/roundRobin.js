@@ -5,7 +5,7 @@ angular.module('view').controller('viewController', function ($scope) {
 	var g_qtdNucleos = g_quantum = g_qtdProcsIniciais = 0;
 
 	// Variaveis globais para fator de cada fila de prioridade
-	var g_f0 = 12;
+	var g_f0 = 9;
 	var g_f1 = 6;
 	var g_f2 = 3;
 
@@ -28,14 +28,17 @@ angular.module('view').controller('viewController', function ($scope) {
 
 		// Preenche fila de processos em execução (cores) com nenhum valor
 		for (var i = 0; i < qtdNucleos; i++) {
-			$scope.processosExecutando.push({nome: ""});
+			$scope.processosExecutando.push(null);
 		}
 
 		// Preenche fila de aptos.
 		// Cada processo é um loop
 		for (var i = 0; i < qtdProcsIniciais; i++) {
 			// Gera um randomico pra dizer qual a fila de prioridade esse processo vai pertencer
-			var fila = Math.floor(Math.random() * (4));
+			var fila = Math.floor(Math.random() * 4);
+			
+			// Gera um randomico pra dizer a duração total do processo
+			var tempo = Math.floor(Math.random() * 100)+30;
 
 			// Pega o quantum do processo e multiplica ao valor de seu fator, dependendo de sua
 			// prioridade na fila de aptos
@@ -54,21 +57,48 @@ angular.module('view').controller('viewController', function ($scope) {
 			}
 
 			// Adiciona processo na fila de aptos
-			$scope.processosAptos[fila].push({nome: "p"+i, fila: fila, quantum: Number(currentQuantum)});
+			$scope.processosAptos[fila].push({nome: "p"+i, fila: fila, quantum: Number(currentQuantum), tempo: tempo});
 		}
 	}
 
-	class executaTimerParaVoltarProcessamentoParaApto {
-		constructor (indice, filaDeAptos) {
-			var tempo = $scope.processosExecutando[indice].quantum * 1000;
+	var Processa = function(indice, filaDeAptos) {
+		var processo = $scope.processosExecutando[indice];
+		var tempo = processo.quantum * 1000;
 
-			setTimeout(function () {
-				$scope.$apply(function () {
-					$scope.processosAptos[filaDeAptos].push($scope.processosAptos[indice]);
-				});
-			}, tempo);
-		}
+		setTimeout(function () {
+			$scope.$apply(function () {
+				processo.tempo -= processo.quantum;
+				if (processo.tempo <= 0) {
+					processo.tempo = 0;
+					$scope.processosFinalizados.push(processo);
+				} else {
+					$scope.processosAptos[filaDeAptos].push(processo);
+				}
+
+				$scope.processosExecutando[indice] = null;
+			});
+			Processa.prototype.processaProximo();
+		}, tempo);
 	}
+
+	Processa.prototype.processaProximo = function() {
+		var filaDeAptos = 0;
+		for (var nucleo = 0; nucleo < g_qtdNucleos; nucleo++) {
+			if (filaDeAptos%4 === 0) {
+				filaDeAptos = 0;
+			}
+
+			if ($scope.processosExecutando[nucleo] == null) {
+
+				$scope.processosExecutando[nucleo] = $scope.processosAptos[filaDeAptos][0];
+				$scope.processosAptos[filaDeAptos].splice(0, 1);
+
+				new Processa(nucleo, filaDeAptos);
+
+			}
+			filaDeAptos++;
+		}
+	};
 
 	// #3 - Método para iniciar processamento
 	$scope.iniciaProcessamento = function () {
@@ -78,11 +108,14 @@ angular.module('view').controller('viewController', function ($scope) {
 				filaDeAptos = 0;
 			}
 
-			$scope.processosExecutando[nucleo] = $scope.processosAptos[filaDeAptos][0];
-			$scope.processosAptos[filaDeAptos].splice(0, 1);
+			if ($scope.processosExecutando[nucleo] == null) {
 
-			new executaTimerParaVoltarProcessamentoParaApto(nucleo, filaDeAptos);
+				$scope.processosExecutando[nucleo] = $scope.processosAptos[filaDeAptos][0];
+				$scope.processosAptos[filaDeAptos].splice(0, 1);
 
+				new Processa(nucleo, filaDeAptos);
+
+			}
 			filaDeAptos++;
 		}
 	}

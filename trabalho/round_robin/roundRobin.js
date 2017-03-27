@@ -54,13 +54,37 @@ angular.module('view').controller('viewController', function ($scope) {
 			}
 
 			// Adiciona processo na fila de aptos
-			$scope.processosAptos[fila].push({nome: "p"+i, fila: fila, quantum: currentQuantum});
+			$scope.processosAptos[fila].push({nome: "p"+i, fila: fila, quantum: Number(currentQuantum)});
+		}
+	}
+
+	class executaTimerParaVoltarProcessamentoParaApto {
+		constructor (indice, filaDeAptos) {
+			var tempo = $scope.processosExecutando[indice].quantum * 1000;
+
+			setTimeout(function () {
+				$scope.$apply(function () {
+					$scope.processosAptos[filaDeAptos].push($scope.processosAptos[indice]);
+				});
+			}, tempo);
 		}
 	}
 
 	// #3 - Método para iniciar processamento
 	$scope.iniciaProcessamento = function () {
+		var filaDeAptos = 0;
+		for (var nucleo = 0; nucleo < g_qtdNucleos; nucleo++) {
+			if (filaDeAptos%4 === 0) {
+				filaDeAptos = 0;
+			}
 
+			$scope.processosExecutando[nucleo] = $scope.processosAptos[filaDeAptos][0];
+			$scope.processosAptos[filaDeAptos].splice(0, 1);
+
+			new executaTimerParaVoltarProcessamentoParaApto(nucleo, filaDeAptos);
+
+			filaDeAptos++;
+		}
 	}
 
 	// #4 - Método para adicionar processos em tempo de execução

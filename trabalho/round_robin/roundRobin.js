@@ -1,5 +1,16 @@
-angular.module('view', []);
-angular.module('view').controller('viewController', function ($scope) {
+var app = angular.module('view', []);
+app.factory('Scopes', function($rootScope) {
+	var mem = {};
+	return {
+		store : function(key, value) {
+			mem[key] = value;
+		},
+		get : function(key) {
+			return mem[key];
+		}
+	};
+});
+angular.module('view').controller('viewController', function ($scope, Scopes) {
 
 	// Variaveis globais para parametros iniciais
 	var g_qtdNucleos = g_quantum = g_qtdProcsIniciais = 0;
@@ -17,6 +28,9 @@ angular.module('view').controller('viewController', function ($scope) {
 	$scope.processosAbortados = [];
 	// Fila de processos finalizados
 	$scope.processosFinalizados = [];
+
+
+	Scopes.store('RoundRobin', $scope);
 
 	// #2 - Método para inicializar escalonador
 	$scope.initRoundRobin = function (qtdNucleos, quantum, qtdProcsIniciais) {
@@ -61,43 +75,50 @@ angular.module('view').controller('viewController', function ($scope) {
 		}
 	}
 
-	var Processa = function(indice, filaDeAptos) {
+	var Processa = function(indice) {
 		var processo = $scope.processosExecutando[indice];
 		var tempo = processo.quantum * 1000;
 
 		setTimeout(function () {
 			$scope.$apply(function () {
-				processo.tempo -= processo.quantum;
+				processo.tempo -= processo.quantum;							
+
 				if (processo.tempo <= 0) {
 					processo.tempo = 0;
 					$scope.processosFinalizados.push(processo);
-				} else {
-					$scope.processosAptos[filaDeAptos].push(processo);
 				}
 
-				$scope.processosExecutando[indice] = null;
+				if (processo.tempo > 0) {
+					$scope.processosAptos[processo.fila].push($scope.processosExecutando[indice]);
+				}
+
+				$scope.processosExecutando[indice] = null;	
+
 			});
-			Processa.prototype.processaProximo();
+			Processa.prototype.processaProximo(indice);
 		}, tempo);
 	}
 
-	Processa.prototype.processaProximo = function() {
+	Processa.prototype.processaProximo = function(indice) {
 		var filaDeAptos = 0;
-		for (var nucleo = 0; nucleo < g_qtdNucleos; nucleo++) {
-			if (filaDeAptos%4 === 0) {
-				filaDeAptos = 0;
-			}
+		//for (var nucleo = 0; nucleo < g_qtdNucleos; nucleo++) {
+			//if (filaDeAptos%4 === 0) {
+			//	filaDeAptos = 0;
+			//}
 
-			if ($scope.processosExecutando[nucleo] == null) {
-
-				$scope.processosExecutando[nucleo] = $scope.processosAptos[filaDeAptos][0];
+			// $scope.processosExecutando[nucleo] = $scope.processosAptos[filaDeAptos][0];
+			console.log(Scopes.get('RoundRobin').processosExecutando[indice]);
+			Scopes.get('RoundRobin').$apply(function () {
+				$scope.processosExecutando[indice] = $scope.processosAptos[3][0];
 				$scope.processosAptos[filaDeAptos].splice(0, 1);
+			});
 
-				new Processa(nucleo, filaDeAptos);
 
-			}
-			filaDeAptos++;
-		}
+			new Processa(indice);
+
+			//}
+			//filaDeAptos++;
+		//}
 	};
 
 	// #3 - Método para iniciar processamento

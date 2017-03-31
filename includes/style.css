@@ -53,3 +53,19 @@
 	text-align: center;
 	cursor: pointer;
 }
+
+.blue-900 {
+	background-color:#0D47A1;
+}
+
+.blue-700 {
+	background-color:#1976D2;
+}
+
+.blue-500 {
+	background-color:#2196F3;
+}
+
+.blue-200 {
+	background-color:#90CAF9;
+}

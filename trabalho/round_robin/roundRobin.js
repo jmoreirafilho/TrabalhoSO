@@ -63,21 +63,27 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 			// Pega o quantum do processo e multiplica ao valor de seu fator, dependendo de sua
 			// prioridade na fila de aptos
 			var currentQuantum = quantum;
+
+			var colorClass = "blue-200";
+
 			switch (fila) {
 				case 0:
+					colorClass = "blue-900";
 					currentQuantum *= g_f0;
 					break;
 				case 1:
+					colorClass = "blue-700";
 					currentQuantum *= g_f1;
 					break;
 				 case 2 : 
+					colorClass = "blue-500";
 				 	currentQuantum *= g_f2;
 				 	break;
 			 	// em case 3, f3 = 1. 
 			}
 
 			// Adiciona processo na fila de aptos
-			Scopes.get('RoundRobin').processosAptos[fila].push({nome: "p"+i, fila: fila, quantum: Number(currentQuantum), tempo: tempo});
+			Scopes.get('RoundRobin').processosAptos[fila].push({nome: "p"+i, fila: fila, quantum: Number(currentQuantum), tempo: tempo, colorClass: colorClass});
 		}
 	}
 
@@ -119,18 +125,6 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 
 	};
 
-
-
-	/*
-
-
-		ESTA ABRINDO O WINDOW.ALERT ANTES DE TERMINAR.
-
-	*/
-
-
-
-
 	Processa.prototype.proximaFila = function () {
 		if (g_indiceDaProximaFila == null) {
 			g_indiceDaProximaFila = 0;
@@ -143,13 +137,8 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 			g_indiceDaProximaFila = 0;
 		}
 
-		if (g_qtdMiss == 4) {
-			window.alert("Processo Finalizado!");
-		}
-
 		if (Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].length <= 0) {
 			Processa.prototype.proximaFila();
-			g_qtdMiss++;
 		}
 	}
 

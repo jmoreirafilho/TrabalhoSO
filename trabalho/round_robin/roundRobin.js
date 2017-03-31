@@ -83,17 +83,27 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 			}
 
 			// Adiciona processo na fila de aptos
-			Scopes.get('RoundRobin').processosAptos[fila].push({nome: "p"+i, fila: fila, quantum: Number(currentQuantum), tempo: tempo, colorClass: colorClass});
+			Scopes.get('RoundRobin').processosAptos[fila].push({id: i, nome: "p"+i, fila: fila, quantum: Number(currentQuantum), tempo: tempo, colorClass: colorClass});
 		}
 	}
 
 	var Processa = function(indice) {
 		var processo = Scopes.get('RoundRobin').processosExecutando[indice];
 		var tempo = processo.quantum * 1000;
+		if (processo.tempo < processo.quantum) {
+			tempo = processo.tempo * 1000;
+		}
+
+		for (var i = 0; i < Math.round(tempo/1000); i++) {
+			setTimeout(function () {
+				Scopes.get('RoundRobin').$apply(function () {
+					Scopes.get('RoundRobin').processosExecutando[indice].tempo -= 1;
+				});
+			}, 1000);
+		}
 
 		setTimeout(function () {
-			Scopes.get('RoundRobin').$apply(function () {
-				processo.tempo -= processo.quantum;							
+			Scopes.get('RoundRobin').$apply(function () {					
 
 				if (processo.tempo <= 0) {
 					processo.tempo = 0;

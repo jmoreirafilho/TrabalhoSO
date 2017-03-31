@@ -119,6 +119,18 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 
 	};
 
+
+
+	/*
+
+
+		ESTA ABRINDO O WINDOW.ALERT ANTES DE TERMINAR.
+
+	*/
+
+
+
+
 	Processa.prototype.proximaFila = function () {
 		if (g_indiceDaProximaFila == null) {
 			g_indiceDaProximaFila = 0;

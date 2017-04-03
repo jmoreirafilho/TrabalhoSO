@@ -94,13 +94,7 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 			tempo = processo.tempo * 1000;
 		}
 
-		for (var i = 0; i < Math.round(tempo/1000); i++) {
-			setTimeout(function () {
-				Scopes.get('RoundRobin').$apply(function () {
-					Scopes.get('RoundRobin').processosExecutando[indice].tempo -= 1;
-				});
-			}, 1000);
-		}
+		Scopes.get('RoundRobin').processosExecutando[indice].tempo -= tempo/1000;
 
 		setTimeout(function () {
 			Scopes.get('RoundRobin').$apply(function () {					
@@ -124,6 +118,10 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 
 	Processa.prototype.processaProximo = function(indice) {
 		Processa.prototype.proximaFila();
+
+		if(Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].length <= 0) {
+			return;
+		}
 
 		Scopes.get('RoundRobin').$apply(function () {
 			Scopes.get('RoundRobin').processosExecutando[indice] = Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0];
@@ -162,6 +160,7 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 				Scopes.get('RoundRobin').processosExecutando[indiceNucleo] = Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0];
 				Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].splice(0, 1);
 
+				// Inicia um timeOut pra cada core.
 				new Processa(indiceNucleo);
 
 			}

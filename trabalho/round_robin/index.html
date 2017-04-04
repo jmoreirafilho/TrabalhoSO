@@ -37,7 +37,8 @@
 			<div class="col-xs-12">
 				<h3>Processos Finalizados</h3>
 				<div class="nucleo" ng-class="processo.colorClass" ng-repeat="processo in processosFinalizados track by $index">
-					{{processo.nome}}
+					{{processo.nome}}<br />
+					{{processo.processamentos}}<span ng-show="processo.processamentos > 0">x</span>
 				</div>
 			</div>
 		</div>

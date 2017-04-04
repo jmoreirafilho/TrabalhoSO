@@ -83,7 +83,7 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 			}
 
 			// Adiciona processo na fila de aptos
-			Scopes.get('RoundRobin').processosAptos[fila].push({id: i, nome: "p"+i, fila: fila, quantum: Number(currentQuantum), tempo: tempo, colorClass: colorClass});
+			Scopes.get('RoundRobin').processosAptos[fila].push({id: i, nome: "p"+i, fila: fila, quantum: Number(currentQuantum), tempo: tempo, colorClass: colorClass, processamentos: Number(0)});
 		}
 	}
 
@@ -94,10 +94,10 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 
 		// Se tiver 0 de tempo restante de Qauntum, deve jogar o processo
 		// em finalizados ou de volta pra sua fila de prioridade
-		if (tempoRestante == 0) {
+		if (tempoRestante <= 0 || processo.tempo <= 0) {
 
 			// Acabou o processo
-			if (processo.tempo == 0) {
+			if (processo.tempo <= 0) {
 				// Vai pra fila de finallizados
 				Scopes.get('RoundRobin').processosFinalizados.push(processo);
 			}
@@ -150,12 +150,14 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 			}
 		}
 
+		// Incrementa contador de quantas vezes foi processado
+		Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0].processamentos++;
 		// Adiciona processo dessa fila no core
 		Scopes.get('RoundRobin').processosExecutando[indice] = Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0];
 		// Remove processo da fila de aptos
 		Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].splice(0, 1);
 
-		new Processa(indice, Scopes.get('RoundRobin').processosExecutando[indice].tempo);
+		new Processa(indice, Scopes.get('RoundRobin').processosExecutando[indice].quantum);
 	};
 
 	Processa.prototype.proximaFila = function () {
@@ -188,6 +190,9 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 
 				Processa.prototype.proximaFila();
 
+				// Incrementa contador de quantas vezes foi processado
+				Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0].processamentos++;
+				
 				Scopes.get('RoundRobin').processosExecutando[indiceNucleo] = Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0];
 				Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].splice(0, 1);
 
@@ -207,7 +212,37 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 
 	// #4 - Método para adicionar processos em tempo de execução
 	Scopes.get('RoundRobin').adicionaProcesso = function () {
+			// Gera um randomico pra dizer qual a fila de prioridade esse processo vai pertencer
+			var fila = Math.floor(Math.random() * 4);
+			
+			// Gera um randomico pra dizer a duração total do processo
+			var tempo = Math.floor(Math.random() * 10)+5;
 
+			// Pega o quantum do processo e multiplica ao valor de seu fator, dependendo de sua
+			// prioridade na fila de aptos
+			var currentQuantum = g_quantum;
+
+			var colorClass = "red-200";
+
+			switch (fila) {
+				case 0:
+					colorClass = "red-900";
+					currentQuantum *= g_f0;
+					break;
+				case 1:
+					currentQuantum *= g_f1;
+					colorClass = "red-700";
+					break;
+				 case 2 : 
+					colorClass = "red-500";
+				 	currentQuantum *= g_f2;
+				 	break;
+			 	// em case 3, f3 = 1. 
+			}
+
+			// Adiciona processo na fila de aptos
+			Scopes.get('RoundRobin').processosAptos[fila].push({id: g_qtdProcsIniciais, nome: "p"+g_qtdProcsIniciais, fila: fila, quantum: Number(currentQuantum), tempo: tempo, colorClass: colorClass, processamentos: Number(0)});
+			g_qtdProcsIniciais++;
 	}
 
 	// #1 - Pegando variaveis da url e inicializando escalonador

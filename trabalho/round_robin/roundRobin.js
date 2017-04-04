@@ -87,65 +87,96 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 		}
 	}
 
-	var Processa = function(indice) {
+	var Processa = function(indice, tempoRestante) {
+		// Pega processo que esta no core
 		var processo = Scopes.get('RoundRobin').processosExecutando[indice];
-		var tempo = processo.quantum * 1000;
-		if (processo.tempo < processo.quantum) {
-			tempo = processo.tempo * 1000;
-		}
 
-		Scopes.get('RoundRobin').processosExecutando[indice].tempo -= tempo/1000;
 
-		setTimeout(function () {
-			Scopes.get('RoundRobin').$apply(function () {					
+		// Se tiver 0 de tempo restante de Qauntum, deve jogar o processo
+		// em finalizados ou de volta pra sua fila de prioridade
+		if (tempoRestante == 0) {
 
-				if (processo.tempo <= 0) {
-					processo.tempo = 0;
-					$scope.processosFinalizados.push(processo);
-				}
+			// Acabou o processo
+			if (processo.tempo == 0) {
+				// Vai pra fila de finallizados
+				Scopes.get('RoundRobin').processosFinalizados.push(processo);
+			}
 
-				if (processo.tempo > 0) {
-					Scopes.get('RoundRobin').processosAptos[processo.fila].push(Scopes.get('RoundRobin').processosExecutando[indice]);
-				}
+			// Ainda não acabou o processo
+			if (processo.tempo > 0) {
+				// Vai pra fila de aptos novamente
+				Scopes.get('RoundRobin').processosAptos[processo.fila].push(Scopes.get('RoundRobin').processosExecutando[indice]);
+			}
 
-				Scopes.get('RoundRobin').processosExecutando[indice] = null;	
+			// Remove processo do core
+			Scopes.get('RoundRobin').processosExecutando[indice] = null;
 
-			});
-
+			// Busca novo processo para adicionar no core que, agora, está vazio
 			Processa.prototype.processaProximo(indice);
-		}, tempo);
+
+		} else {
+			var timeOut = (tempoRestante < 1)?tempoRestante*1000:1000;
+			// Define o novo valor do tempo do processo.
+			// Chama um novo loop de um segundo ou menos.
+			setTimeout(function () {
+				Scopes.get('RoundRobin').$apply(function () {
+					$scope.processosExecutando[indice].tempo -= (timeOut / 1000);
+					tempoRestante--;
+					new Processa(indice, tempoRestante);
+				});
+			}, timeOut);
+		}
 	}
 
 	Processa.prototype.processaProximo = function(indice) {
+		// Busca proximo indice do processo na fila de prioridade
 		Processa.prototype.proximaFila();
 
+		// Se a fila buscada não tiver mais nenhum processo, verifica se os cores
+		// estão vazios
 		if(Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].length <= 0) {
-			return;
+			var aindaTemAlgumProcesso = false;
+			for (var i = 0; i < g_qtdNucleos; i++) {
+				// Se algum core nao estiver vazio, ainda tem algo processando
+				if (Scopes.get('RoundRobin').processosExecutando[i] != null) {
+					aindaTemAlgumProcesso = true;
+				}
+			}
+
+			// Se ainda tiver algum processo, o metodo se chama.
+			if (aindaTemAlgumProcesso) {
+				Processa.prototype.processaProximo(indice);
+				return;
+			}
 		}
 
-		Scopes.get('RoundRobin').$apply(function () {
-			Scopes.get('RoundRobin').processosExecutando[indice] = Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0];
-			Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].splice(0, 1);
-		});
+		// Adiciona processo dessa fila no core
+		Scopes.get('RoundRobin').processosExecutando[indice] = Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0];
+		// Remove processo da fila de aptos
+		Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].splice(0, 1);
 
-		new Processa(indice);
-
-
+		new Processa(indice, Scopes.get('RoundRobin').processosExecutando[indice].tempo);
 	};
 
 	Processa.prototype.proximaFila = function () {
+		// Se for o primeiro processo, seta o indice para 0 e sai
 		if (g_indiceDaProximaFila == null) {
 			g_indiceDaProximaFila = 0;
 			return;
 		}
 
+		// Incrementa o indice
 		g_indiceDaProximaFila++;
 			
+		// Se for um indice divisivel por 4, significa que é um indice de uma
+		// fila de prioridade que nao existe. Zera o indice, para ir para a
+		// primeira fila de prioridade.
 		if (g_indiceDaProximaFila%4 == 0) {
 			g_indiceDaProximaFila = 0;
 		}
 
-		if (Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].length <= 0) {
+		// Se não tiver nenhum processo nessa fila de aptos, busca em outra fila.
+		if (Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].length == 0) {
 			Processa.prototype.proximaFila();
 		}
 	}
@@ -160,8 +191,15 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 				Scopes.get('RoundRobin').processosExecutando[indiceNucleo] = Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0];
 				Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].splice(0, 1);
 
+
+				var tempoRestante = Scopes.get('RoundRobin').processosExecutando[indiceNucleo].quantum;
+
+				if (Scopes.get('RoundRobin').processosExecutando[indiceNucleo].tempo < tempoRestante) {
+					tempoRestante = Scopes.get('RoundRobin').processosExecutando[indiceNucleo].tempo;
+				}
+
 				// Inicia um timeOut pra cada core.
-				new Processa(indiceNucleo);
+				new Processa(indiceNucleo, tempoRestante);
 
 			}
 		}

@@ -26,7 +26,7 @@
 			<div class="col-sm-4">
 				<div class="card text-right">
 					<h3>Least Time to Go (LTG)</h3>
-					<p>Descrição</p>
+					<p><strong>DESCRIÇÃO:</strong><br>&emsp;Nesse algorítmo, cada processo terá um valor chamado de <strong>Deadline</strong> que definirá quanto tempo ele poderá permanecer na fila de Aptos. Caso o tempo de <strong>Deadline</strong> chegue a 0 antes de o processo entrar no core, esse processo deverá ser abortado.<br />&emsp;ALém disso, a fila de aptos deverá ordenar os processos de acordo com suas <strong>Deadlines</strong>, de modo que os processos com menor <strong>Deadline</strong> fique mais proximo do começo da fila e os de maior fique mais no final da fila.</p>
 					<button class="btn btn-primary" data-toggle="modal" data-target="#parametrosLTG">Parametrizar</button>
 				</div>
 			</div>
@@ -92,14 +92,6 @@
 						</div>
 						<div class="col-sm-6">
 							<div class="form-group">
-								<label>Valor do Quantum</label>
-								<input type="text" class="form-control" id="ltg_quantum" placeholder="Número de 2 a 20">
-							</div>
-						</div>
-					</div>
-					<div class="row">
-						<div class="col-sm-6">
-							<div class="form-group">
 								<label>Qtd. Inicial de Processos</label>
 								<input type="text" class="form-control" id="ltg_qtd_processos" placeholder="Valor Numérico">
 							</div>
@@ -141,7 +133,15 @@
 			}
 		}
 		function executarLTG() {
-			window.alert("oi");
+			var dados = {
+				qtdNucleos: $("#ltg_qtd_nucleos").val(),
+				qtdProcIni: $("#ltg_qtd_processos").val()
+			};
+
+			// if(formEstaValido(dados)){
+				var stringDados = "p1="+dados.qtdNucleos+"&p2="+dados.qtdProcIni;
+				window.location = "ltg/index.html?"+stringDados;
+			// }
 		}
 	</script>
 </body>

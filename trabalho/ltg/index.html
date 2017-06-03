@@ -1,13 +1,71 @@
 <!DOCTYPE html>
-<html>
+<html ng-app="view">
 <head>
-	<title>Round Robin</title>
-	<link rel="stylesheet" type="text/css" href="../scripts/bootstrap.min.css">
+	<meta charset="utf-8">
+	<title>Least Time to Go</title>
+	<link rel="stylesheet" type="text/css" href="../../includes/font-awesome/css/font-awesome.min.css">
+	<link rel="stylesheet" type="text/css" href="../../includes/bootstrap.min.css">
+	<link rel="stylesheet" type="text/css" href="../../includes/style.css">
 </head>
-<body>
-	<h1>
-		Algorítmo de Least Time to Go - LTG
-	</h1>
-	<input type="text" name="" class="form-control">
+<body ng-controller="viewController">
+	<div class="container-fluid">
+		<h2>
+			Algorítmo Least Time to Go
+			<small>
+				<a href="../index.html">Voltar</a>
+			</small>
+		</h2>
+
+		<hr>
+
+		<div class="row">
+			<div class="col-xs-12">
+				<h3>Cores <small>(tempo)</small></h3>
+				<div class="nucleo" ng-class="processo.colorClass" ng-repeat="processo in processosExecutando track by $index">
+					{{processo.nome}}<br />
+					{{processo.tempo}}<span ng-show="processo.tempo > 0">s</span>
+				</div>
+			</div>
+
+			<div class="col-xs-12">
+				<h3>Processos Aptos <small>(deadline/tempo)</small></h3>
+				<div class="nucleo" ng-class="processo.colorClass" ng-repeat="processo in processosAptos track by $index" id="{{processo.id}}">
+					{{processo.nome}}<br />
+					{{processo.deadLine}}/{{processo.tempo}}
+				</div>
+			</div>
+
+			<div class="col-xs-12">
+				<h3>Processos Abortados <small>(tempo)</small></h3>
+				<div class="nucleo" ng-class="processo.colorClass" ng-repeat="processo in processosAbortados track by $index">
+					{{processo.nome}}<br />
+					{{processo.tempo}}<span ng-show="processo.tempo == 0">s</span>
+				</div>
+			</div>
+
+			<div class="col-xs-12">
+				<h3>Processos Finalizados <small>(tempo)</small></h3>
+				<div class="nucleo" ng-class="processo.colorClass" ng-repeat="processo in processosFinalizados track by $index">
+					{{processo.nome}}<br />
+					{{processo.tempo}}<span ng-show="processo.tempo > 0">s</span>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="rodape"></div>
+	
+	<div class="menu-suspenso">
+		<div class="option" ng-click="adicionaProcesso()">
+			<i class="fa fa-plus"></i>
+		</div>
+		<div class="option" ng-click="iniciaProcessamento()">
+			<i class="fa fa-play"></i>
+		</div>
+	</div>
+
+	<script type="text/javascript" src="../../includes/jquery.min.js"></script>
+	<script type="text/javascript" src="../../includes/angular.min.js"></script>
+	<script type="text/javascript" src="ltg.js"></script>
 </body>
 </html>

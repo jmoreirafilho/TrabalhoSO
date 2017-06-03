@@ -11,6 +11,9 @@
 	<div class="container-fluid">
 		<h2>
 			Algorítmo Round Robin com Fila de Prioridade
+			<small>
+				<a href="../index.html">Voltar</a>
+			</small>
 		</h2>
 
 		<hr>
@@ -27,6 +30,19 @@
 			<div class="col-xs-12">
 				<h3>Processos Aptos</h3>
 				<div class="col-xs-3" ng-repeat="processo in processosAptos track by $index">
+					<div class="col-xs-12" ng-show="$index == 0">
+						<strong>Fila 0</strong> &emsp; Quantum: <strong>{{quantumF0}}</strong>
+					</div>
+					<div class="col-xs-12" ng-show="$index == 1">
+						<strong>Fila 1</strong> &emsp; Quantum: <strong>{{quantumF1}}</strong>
+					</div>
+					<div class="col-xs-12" ng-show="$index == 2">
+						<strong>Fila 2</strong> &emsp; Quantum: <strong>{{quantumF2}}</strong>
+					</div>
+					<div class="col-xs-12" ng-show="$index == 3">
+						<strong>Fila 3</strong> &emsp; Quantum: <strong>{{quantumF3}}</strong>
+					</div>
+
 					<div class="nucleo" ng-class="fila.colorClass" ng-repeat="fila in processo track by $index" id={{fila.id}}>
 						{{fila.nome}}<br />
 						{{fila.tempo}}<span ng-show="fila.tempo > 0">s</span>

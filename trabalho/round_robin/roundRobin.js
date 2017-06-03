@@ -1,4 +1,5 @@
 var app = angular.module('view', []);
+
 app.factory('Scopes', function($rootScope) {
 	var mem = {};
 	return {
@@ -27,19 +28,20 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 	// Indice da fila de prioridade que deve ser pegue
 	var g_indiceDaProximaFila = null;
 
-	var g_qtdMiss = 0;
-
 	// Fila de processos em execução (cores)
 	Scopes.get('RoundRobin').processosExecutando = [];
 	// Fila de processos aptos
 	Scopes.get('RoundRobin').processosAptos = {0: [], 1: [], 2: [], 3: []};
-	// Fila de processos abortados
-	Scopes.get('RoundRobin').processosAbortados = [];
 	// Fila de processos finalizados
 	Scopes.get('RoundRobin').processosFinalizados = [];
 
 	// #2 - Método para inicializar escalonador
 	Scopes.get('RoundRobin').initRoundRobin = function (qtdNucleos, quantum, qtdProcsIniciais) {
+
+		Scopes.get('RoundRobin').quantumF0 = g_f0 * quantum;
+		Scopes.get('RoundRobin').quantumF1 = g_f1 * quantum;
+		Scopes.get('RoundRobin').quantumF2 = g_f2 * quantum;
+		Scopes.get('RoundRobin').quantumF3 = quantum;
 
 		// Define as variaveis globais
 		g_qtdNucleos = qtdNucleos;

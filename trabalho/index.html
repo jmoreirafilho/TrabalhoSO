@@ -63,6 +63,16 @@
 								<input type="text" class="form-control" id="rr_qtd_processos" placeholder="Valor Numérico">
 							</div>
 						</div>
+						<div class="col-sm-6">
+							<div class="form-group">
+								<label>Algoritmo</label>
+								<select id="rr_algoritmo" class="form-control">
+									<option value="best">Best Fit</option>
+									<option value="merge">Merge Fit</option>
+									<option value="quick">Quick Fit</option>
+								</select>
+							</div>
+						</div>
 					</div>
 				</div>
 				<div class="modal-footer">
@@ -97,6 +107,18 @@
 							</div>
 						</div>
 					</div>
+					<div class="row">
+						<div class="col-sm-6">
+							<div class="form-group">
+								<label>Algoritmo</label>
+								<select id="ltg_algoritmo" class="form-control">
+									<option value="best">Best Fit</option>
+									<option value="merge">Merge Fit</option>
+									<option value="quick">Quick Fit</option>
+								</select>
+							</div>
+						</div>
+					</div>
 				</div>
 				<div class="modal-footer">
 					<button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
@@ -110,38 +132,22 @@
 	<script type="text/javascript" src="../includes/jquery.min.js"></script>
 	<script type="text/javascript" src="../includes/bootstrap.min.js"></script>
 	<script type="text/javascript">
-		function formEstaValido (dados) {
-			if (dados.qtdNucleos > 0
-				&& dados.quantum > 0
-				&& dados.qtdProcIni > 0) {
-				return true;
-			}
-			window.alert("Preencha todos os campos corretamente!");
-			return false;
-		}
-
 		function executarRR() {
-			var dados = {
-				qtdNucleos: $("#rr_qtd_nucleos").val(),
-				quantum: $("#rr_quantum").val(),
-				qtdProcIni: $("#rr_qtd_processos").val()
-			};
+			qtdNucleos = $("#rr_qtd_nucleos").val();
+			quantum = $("#rr_quantum").val();
+			qtdProcIni = $("#rr_qtd_processos").val();
+			algoritmo = $("#rr_algoritmo").val();
 
-			if(formEstaValido(dados)){
-				var stringDados = "p1="+dados.qtdNucleos+"&p2="+dados.quantum+"&p3="+dados.qtdProcIni;
-				window.location = "round_robin/index.html?"+stringDados;
-			}
+			var stringDados = "p1="+qtdNucleos+"&p2="+quantum+"&p3="+qtdProcIni+"&p4="+algoritmo;
+			window.location = "round_robin/index.html?"+stringDados;
 		}
 		function executarLTG() {
-			var dados = {
-				qtdNucleos: $("#ltg_qtd_nucleos").val(),
-				qtdProcIni: $("#ltg_qtd_processos").val()
-			};
+			qtdNucleos = $("#ltg_qtd_nucleos").val();
+			qtdProcIni = $("#ltg_qtd_processos").val();
+			algoritmo = $("#ltg_algoritmo").val();
 
-			// if(formEstaValido(dados)){
-				var stringDados = "p1="+dados.qtdNucleos+"&p2="+dados.qtdProcIni;
-				window.location = "ltg/index.html?"+stringDados;
-			// }
+			var stringDados = "p1="+dados.qtdNucleos+"&p2="+dados.qtdProcIni+"&p3="+algoritmo;
+			window.location = "ltg/index.html?"+stringDados;
 		}
 	</script>
 </body>

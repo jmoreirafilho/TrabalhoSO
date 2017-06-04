@@ -12,14 +12,10 @@ Fit.prototype.getBlocos = function () {
 	return g_blocosDeMemoria;
 }
 
-Fit.prototype.adicionaBloco = function (bloco) {
-	g_blocosDeMemoria.push(bloco);
-	g_memoriaDisponivel -= bloco.tamanho;
-}
-
 Fit.prototype.alocaMemoria = function (idMemoria, colorClass) {
 	g_blocosDeMemoria[idMemoria].status = "ocupado";
 	g_blocosDeMemoria[idMemoria].coloClass = colorClass;
+	g_blocosDeMemoria[idMemoria].usos++;
 	g_memoriaDisponivel -= g_blocosDeMemoria[idMemoria].tamanho;
 }
 
@@ -29,7 +25,7 @@ Fit.prototype.desalocaMemoria = function (idMemoria) {
 }
 
 Fit.prototype.criarBloco = function (tamanho, colorClass) {
-	var bloco = {tamanho: tamanho, status: "ocupado", colorClass: colorClass};
+	var bloco = {tamanho: tamanho, status: "ocupado", colorClass: colorClass, usos: 1};
 	g_blocosDeMemoria.push(bloco);
 	g_memoriaDisponivel -= tamanho;
 }

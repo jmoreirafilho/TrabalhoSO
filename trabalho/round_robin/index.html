@@ -33,9 +33,10 @@
 		<div class="row">
 			<div class="col-xs-12">
 				<h3>Memória <small>({{memoria.tamLivre}}kb livres de {{memoria.tamTotal}}kb em {{memoria.blocos.length}} blocos)</small></h3>
-				<div class="nucleo" style="height:50px" ng-class="bloco.colorClass" ng-repeat="bloco in memoria.blocos track by $index">
+				<div class="nucleo" ng-class="bloco.colorClass" ng-repeat="bloco in memoria.blocos track by $index">
 					{{bloco.tamanho}}kb<br />
-					{{bloco.status}}<span ng-show="processo.tempo > 0">s</span>
+					{{bloco.status}}<br />
+					{{bloco.usos}}<span ng-show="bloco.usos > 0">x</span>
 				</div>
 			</div>
 		</div>

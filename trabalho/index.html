@@ -74,6 +74,14 @@
 							</div>
 						</div>
 					</div>
+					<div class="row">
+						<div class="col-sm-6">
+							<div class="form-group">
+								<label>Tamanho (kb)</label>
+								<input type="text" class="form-control" id="rr_tamanho" placeholder="Tamanho da memória">
+							</div>
+						</div>
+					</div>
 				</div>
 				<div class="modal-footer">
 					<button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
@@ -124,9 +132,10 @@
 			var qtdNucleos = $("#rr_qtd_nucleos").val();
 			var quantum = $("#rr_quantum").val();
 			var qtdProcIni = $("#rr_qtd_processos").val();
+			var tamanho = $("#rr_tamanho").val();
 			var algoritmo = $("#rr_algoritmo").val();
 
-			var stringDados = "p1="+qtdNucleos+"&p2="+quantum+"&p3="+qtdProcIni+"&p4="+algoritmo;
+			var stringDados = "p1="+qtdNucleos+"&p2="+quantum+"&p3="+qtdProcIni+"&p4="+tamanho+"&p5="+algoritmo;
 			window.location = "round_robin/index.html?"+stringDados;
 		}
 		function executarLTG() {

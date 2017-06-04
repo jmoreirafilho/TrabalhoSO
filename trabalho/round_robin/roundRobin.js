@@ -18,7 +18,7 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 	Scopes.store('RoundRobin', $scope);
 
 	// Variaveis globais para parametros iniciais
-	var g_qtdNucleos = g_quantum = g_qtdProcsIniciais = 0;
+	var g_qtdNucleos = g_quantum = g_qtdProcsIniciais = g_tamMemmoriaLivre = g_tamMemmoriaTotal = 0;
 
 	// Variaveis globais para fator de cada fila de prioridade
 	var g_f0 = 2.1;
@@ -28,30 +28,48 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 	// Indice da fila de prioridade que deve ser pegue
 	var g_indiceDaProximaFila = null;
 
+	// Algoritmo utilizado
+	var g_algoritmo = "";
+
 	// Fila de processos em execução (cores)
 	Scopes.get('RoundRobin').processosExecutando = [];
+	// Blocos de memória
+	Scopes.get('RoundRobin').memoria = [];
 	// Fila de processos aptos
 	Scopes.get('RoundRobin').processosAptos = {0: [], 1: [], 2: [], 3: []};
 	// Fila de processos finalizados
 	Scopes.get('RoundRobin').processosFinalizados = [];
+	// Fila de processos abortados
+	Scopes.get('RoundRobin').processosAbortados = [];
 
 	// #2 - Método para inicializar escalonador
-	Scopes.get('RoundRobin').initRoundRobin = function (qtdNucleos, quantum, qtdProcsIniciais) {
+	Scopes.get('RoundRobin').initRoundRobin = function (qtdNucleos, quantum, qtdProcsIniciais, tamanho, algoritmo) {
 
 		Scopes.get('RoundRobin').quantumF0 = g_f0 * quantum;
 		Scopes.get('RoundRobin').quantumF1 = g_f1 * quantum;
 		Scopes.get('RoundRobin').quantumF2 = g_f2 * quantum;
 		Scopes.get('RoundRobin').quantumF3 = quantum;
 
+		// Inicializa classe de gerenciamento de memória
+		Fit(algoritmo, tamanho);
+
 		// Define as variaveis globais
 		g_qtdNucleos = qtdNucleos;
 		g_quantum = quantum;
 		g_qtdProcsIniciais = qtdProcsIniciais;
+		g_tamMemmoriaLivre = tamanho;
+		g_tamMemmoriaTotal = tamanho;
+		g_algoritmo = algoritmo;
 
 		// Preenche fila de processos em execução (cores) com nenhum valor
 		for (var i = 0; i < qtdNucleos; i++) {
-			$scope.processosExecutando.push(null);
+			Scopes.get('RoundRobin').processosExecutando.push(null);
 		}
+
+		// Preenche memória
+		Scopes.get('RoundRobin').memoria.tamLivre = g_tamMemmoriaLivre;
+		Scopes.get('RoundRobin').memoria.tamTotal = g_tamMemmoriaTotal;
+		Scopes.get('RoundRobin').memoria.blocos = [];
 
 		// Preenche fila de aptos.
 		// Cada processo é um loop
@@ -84,8 +102,23 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 			 	// em case 3, f3 = 1. 
 			}
 
+			// Gera um randomico para o tamanho do processo
+			var tamanho = Math.floor(Math.random() * 992)+32;
+
 			// Adiciona processo na fila de aptos
-			Scopes.get('RoundRobin').processosAptos[fila].push({id: i, nome: "p"+i, fila: fila, quantum: Number(currentQuantum), tempo: tempo, colorClass: colorClass, processamentos: Number(0)});
+			Scopes.get('RoundRobin').processosAptos[fila].push({
+				id: i, 
+				nome: "p"+i, 
+				fila: fila, 
+				quantum: Number(currentQuantum), 
+				tempo: tempo, 
+				colorClass: colorClass, 
+				processamentos: Number(0),
+				tamanho: tamanho,
+				probNovaRequisicao: Math.floor(Math.random() * tempo),
+				idMemoria: null
+			});
+
 		}
 	}
 
@@ -112,6 +145,10 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 
 			// Remove processo do core
 			Scopes.get('RoundRobin').processosExecutando[indice] = null;
+
+			// Remove processo da memoria
+			Scopes.get('RoundRobin').memoria.blocos[processo.idMemoria].status = "livre";
+			Fit.prototype.desalocaMemoria(processo.idMemoria);
 
 			// Busca novo processo para adicionar no core que, agora, está vazio
 			Processa.prototype.processaProximo(indice);
@@ -189,11 +226,38 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 	Scopes.get('RoundRobin').iniciaProcessamento = function () {
 		for (var indiceNucleo = 0; indiceNucleo < g_qtdNucleos; indiceNucleo++) {
 			if (Scopes.get('RoundRobin').processosExecutando[indiceNucleo] == null) {
-
 				Processa.prototype.proximaFila();
+
+				// Pega processo atual em uma variavel, para simplificar
+				var processoAtual = Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0];
+
+				var verificacaoDeMemoria = Fit.prototype.temMemoriaDisponivel(processoAtual);
+				
+				var bloco = {tamanho: processoAtual.tamanho, status: "ocupado", colorClass: processoAtual.colorClass};
+
+				var idMemoria = null;
+				
+				if (verificacaoDeMemoria === true) {
+					// Cria novo Bloco com o tamanho desse processo
+					Scopes.get('RoundRobin').memoria.blocos.push(bloco);
+					//Replica no Fit
+					Fit.prototype.adicionaBloco(bloco);
+					// Busca indice da memoria
+					idMemoria = Scopes.get('RoundRobin').memoria.blocos.length - 1;
+				} else if (verificacaoDeMemoria !== false){
+					// Adiciona no indice do bloco que veio
+					Scopes.get('RoundRobin').memoria.blocos[verificacaoDeMemoria] = bloco;
+					idMemoria = verificacaoDeMemoria;
+				} else {
+					// aborta
+					Scopes.get('RoundRobin').processosAbortados.push(processoAtual);
+					continue;
+				}
+				Scopes.get('RoundRobin').memoria.tamLivre -= processoAtual.tamanho;
 
 				// Incrementa contador de quantas vezes foi processado
 				Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0].processamentos++;
+				Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0].idMemoria = idMemoria;
 				
 				Scopes.get('RoundRobin').processosExecutando[indiceNucleo] = Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0];
 				Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].splice(0, 1);
@@ -207,7 +271,6 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 
 				// Inicia um timeOut pra cada core.
 				new Processa(indiceNucleo, tempoRestante);
-
 			}
 		}
 	}
@@ -251,5 +314,7 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 	var p1 = new RegExp('[\?&]p1=([^&#]*)').exec(window.location.href)[1];
 	var p2 = new RegExp('[\?&]p2=([^&#]*)').exec(window.location.href)[1];
 	var p3 = new RegExp('[\?&]p3=([^&#]*)').exec(window.location.href)[1];
-	Scopes.get('RoundRobin').initRoundRobin(p1, p2, p3);
+	var p4 = new RegExp('[\?&]p4=([^&#]*)').exec(window.location.href)[1];
+	var p5 = new RegExp('[\?&]p5=([^&#]*)').exec(window.location.href)[1];
+	Scopes.get('RoundRobin').initRoundRobin(p1, p2, p3, p4, p5);
 });

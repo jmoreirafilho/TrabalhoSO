@@ -24,16 +24,17 @@
 				<h3>Cores <small>({{processosExecutando.length}})</small></h3>
 				<div class="nucleo" ng-class="processo.colorClass" ng-repeat="processo in processosExecutando track by $index">
 					{{processo.nome}}<br />
-					{{processo.tempo}}<span ng-show="processo.tempo > 0">s</span>
+					{{processo.tempo}}<span ng-show="processo.tempo > 0">s</span><br />
+					{{processo.tamanho}}<span ng-show="processo.tamanho > 0">kb</span>
 				</div>
 			</div>
 		</div>
 
 		<div class="row">
 			<div class="col-xs-12">
-				<h3>Memória <small>({{memoria.tamLivre}}kb livres de {{memoria.tamTotal}}kb)</small></h3>
-				<div class="nucleo" style="width: 80px;" ng-class="bloco.colorClass" ng-repeat="bloco in memoria.blocos track by $index">
-					{{bloco.tamanho}}<br />
+				<h3>Memória <small>({{memoria.tamLivre}}kb livres de {{memoria.tamTotal}}kb em {{memoria.blocos.length}} blocos)</small></h3>
+				<div class="nucleo" style="height:50px" ng-class="bloco.colorClass" ng-repeat="bloco in memoria.blocos track by $index">
+					{{bloco.tamanho}}kb<br />
 					{{bloco.status}}<span ng-show="processo.tempo > 0">s</span>
 				</div>
 			</div>
@@ -58,7 +59,8 @@
 
 					<div class="nucleo" ng-class="fila.colorClass" ng-repeat="fila in processo track by $index" id={{fila.id}}>
 						{{fila.nome}}<br />
-						{{fila.tempo}}<span ng-show="fila.tempo > 0">s</span>
+						{{fila.tempo}}<span ng-show="fila.tempo > 0">s</span><br />
+						{{fila.tamanho}}kb
 					</div>
 				</div>
 			</div>

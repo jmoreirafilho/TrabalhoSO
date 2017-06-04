@@ -146,8 +146,11 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 			// Remove processo do core
 			Scopes.get('RoundRobin').processosExecutando[indice] = null;
 
-			// Remove processo da memoria
+			// Desaloca processo da memoria
 			Scopes.get('RoundRobin').memoria.blocos[processo.idMemoria].status = "livre";
+			// Aumenta memoria disponivel
+			Scopes.get('RoundRobin').memoria.tamLivre += processo.tamanho;
+			// Replica em FIT
 			Fit.prototype.desalocaMemoria(processo.idMemoria);
 
 			// Busca novo processo para adicionar no core que, agora, está vazio
@@ -167,36 +170,74 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 		}
 	}
 
+	Processa.prototype.alocaMemoria = function (processoAtual) {
+		// Verifica se tem memoria, ou qual bloco deve ser alocado
+		var verificacaoDeMemoria = Fit.prototype.temMemoriaDisponivel(processoAtual);
+		
+		if(verificacaoDeMemoria === false) {
+			// Aborta
+			Scopes.get('RoundRobin').processosAbortados.push(processoAtual);
+			return false;
+		}
+
+		var idMemoria = null;
+		
+		if (verificacaoDeMemoria === true || verificacaoDeMemoria === null) {
+			// Busca indice da memoria
+			idMemoria = Fit.prototype.getBlocos().length - 1;
+		} else {
+			// Aloca um bloco que ja foi criado
+			idMemoria = verificacaoDeMemoria;
+		}
+
+		// Iguala os blocos de FIT com o dessa classe de View
+		Scopes.get('RoundRobin').memoria.blocos = Fit.prototype.getBlocos();
+		// Diminui o tamanho disponivel
+		Scopes.get('RoundRobin').memoria.tamLivre -= processoAtual.tamanho;
+		return idMemoria;
+	}
+
 	Processa.prototype.processaProximo = function(indice) {
 		// Busca proximo indice do processo na fila de prioridade
 		Processa.prototype.proximaFila();
 
-		// Se a fila buscada não tiver mais nenhum processo, verifica se os cores
-		// estão vazios
-		if(Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].length <= 0) {
-			var aindaTemAlgumProcesso = false;
-			for (var i = 0; i < g_qtdNucleos; i++) {
-				// Se algum core nao estiver vazio, ainda tem algo processando
-				if (Scopes.get('RoundRobin').processosExecutando[i] != null) {
-					aindaTemAlgumProcesso = true;
+		// Aloca memoria
+		var idMemoria = Processa.prototype.alocaMemoria(Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0]);
+		if(idMemoria !== false) {
+
+			// Se a fila buscada não tiver mais nenhum processo, verifica se os cores
+			// estão vazios
+			if(Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].length <= 0) {
+				var aindaTemAlgumProcesso = false;
+				for (var i = 0; i < g_qtdNucleos; i++) {
+					// Se algum core nao estiver vazio, ainda tem algo processando
+					if (Scopes.get('RoundRobin').processosExecutando[i] != null) {
+						aindaTemAlgumProcesso = true;
+					}
+				}
+
+				// Se ainda tiver algum processo, o metodo se chama.
+				if (aindaTemAlgumProcesso) {
+					Processa.prototype.processaProximo(indice);
+					return;
 				}
 			}
 
-			// Se ainda tiver algum processo, o metodo se chama.
-			if (aindaTemAlgumProcesso) {
-				Processa.prototype.processaProximo(indice);
-				return;
-			}
+			// Define o indice da Memoria
+			Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0].idMemoria = idMemoria;
+			// Incrementa contador de quantas vezes foi processado
+			Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0].processamentos++;
+			// Adiciona processo dessa fila no core
+			Scopes.get('RoundRobin').processosExecutando[indice] = Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0];
+			// Remove processo da fila de aptos
+			Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].splice(0, 1);
+
+			new Processa(indice, Scopes.get('RoundRobin').processosExecutando[indice].quantum);
+		} else {
+			// Retira da fila de aptos, pois abortou
+			Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].splice(0, 1);
+			Processa.prototype.processaProximo(indice);
 		}
-
-		// Incrementa contador de quantas vezes foi processado
-		Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0].processamentos++;
-		// Adiciona processo dessa fila no core
-		Scopes.get('RoundRobin').processosExecutando[indice] = Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0];
-		// Remove processo da fila de aptos
-		Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].splice(0, 1);
-
-		new Processa(indice, Scopes.get('RoundRobin').processosExecutando[indice].quantum);
 	};
 
 	Processa.prototype.proximaFila = function () {
@@ -228,49 +269,31 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 			if (Scopes.get('RoundRobin').processosExecutando[indiceNucleo] == null) {
 				Processa.prototype.proximaFila();
 
-				// Pega processo atual em uma variavel, para simplificar
-				var processoAtual = Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0];
+				var idMemoria = Processa.prototype.alocaMemoria(Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0]);
 
-				var verificacaoDeMemoria = Fit.prototype.temMemoriaDisponivel(processoAtual);
-				
-				var bloco = {tamanho: processoAtual.tamanho, status: "ocupado", colorClass: processoAtual.colorClass};
+				if (idMemoria !== false) { // Caso nao tenha sido abortado				
+					// Incrementa contador de quantas vezes foi processado
+					Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0].processamentos++;
 
-				var idMemoria = null;
-				
-				if (verificacaoDeMemoria === true) {
-					// Cria novo Bloco com o tamanho desse processo
-					Scopes.get('RoundRobin').memoria.blocos.push(bloco);
-					//Replica no Fit
-					Fit.prototype.adicionaBloco(bloco);
-					// Busca indice da memoria
-					idMemoria = Scopes.get('RoundRobin').memoria.blocos.length - 1;
-				} else if (verificacaoDeMemoria !== false){
-					// Adiciona no indice do bloco que veio
-					Scopes.get('RoundRobin').memoria.blocos[verificacaoDeMemoria] = bloco;
-					idMemoria = verificacaoDeMemoria;
+					Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0].idMemoria = idMemoria;
+					
+					Scopes.get('RoundRobin').processosExecutando[indiceNucleo] = Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0];
+					Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].splice(0, 1);
+
+
+					var tempoRestante = Scopes.get('RoundRobin').processosExecutando[indiceNucleo].quantum;
+
+					if (Scopes.get('RoundRobin').processosExecutando[indiceNucleo].tempo < tempoRestante) {
+						tempoRestante = Scopes.get('RoundRobin').processosExecutando[indiceNucleo].tempo;
+					}
+
+					// Inicia um timeOut pra cada core.
+					new Processa(indiceNucleo, tempoRestante);
 				} else {
-					// aborta
-					Scopes.get('RoundRobin').processosAbortados.push(processoAtual);
-					continue;
+					// Retira da fila de aptos, pois abortou
+					Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].splice(0, 1);
+					Processa.prototype.processaProximo(indiceNucleo);
 				}
-				Scopes.get('RoundRobin').memoria.tamLivre -= processoAtual.tamanho;
-
-				// Incrementa contador de quantas vezes foi processado
-				Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0].processamentos++;
-				Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0].idMemoria = idMemoria;
-				
-				Scopes.get('RoundRobin').processosExecutando[indiceNucleo] = Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0];
-				Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].splice(0, 1);
-
-
-				var tempoRestante = Scopes.get('RoundRobin').processosExecutando[indiceNucleo].quantum;
-
-				if (Scopes.get('RoundRobin').processosExecutando[indiceNucleo].tempo < tempoRestante) {
-					tempoRestante = Scopes.get('RoundRobin').processosExecutando[indiceNucleo].tempo;
-				}
-
-				// Inicia um timeOut pra cada core.
-				new Processa(indiceNucleo, tempoRestante);
 			}
 		}
 	}
@@ -305,8 +328,23 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 			 	// em case 3, f3 = 1. 
 			}
 
+			
+			// Gera um randomico para o tamanho do processo
+			var tamanho = Math.floor(Math.random() * 992)+32;
+
 			// Adiciona processo na fila de aptos
-			Scopes.get('RoundRobin').processosAptos[fila].push({id: g_qtdProcsIniciais, nome: "p"+g_qtdProcsIniciais, fila: fila, quantum: Number(currentQuantum), tempo: tempo, colorClass: colorClass, processamentos: Number(0)});
+			Scopes.get('RoundRobin').processosAptos[fila].push({
+				id: g_qtdProcsIniciais,
+				nome: "p"+g_qtdProcsIniciais, 
+				fila: fila, 
+				quantum: Number(currentQuantum), 
+				tempo: tempo, 
+				colorClass: colorClass,
+				processamentos: Number(0),
+				tamanho: tamanho,
+				probNovaRequisicao: Math.floor(Math.random() * tempo),
+				idMemoria: null
+			});
 			g_qtdProcsIniciais++;
 	}
 

@@ -143,19 +143,21 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 				Scopes.get('RoundRobin').processosAptos[processo.fila].push(Scopes.get('RoundRobin').processosExecutando[indice]);
 			}
 
-			// Desaloca da memoria no Fit
+			// Desalocação da memoria no Fit
 			if (g_algoritmo == 'merge') {
-				// Redefine id do bloco utilizado
-				processo.idMemoria = Fit.prototype.desalocaMemoria(processo.idMemoria);
-				// Redefine processo
-				Scopes.get('RoundRobin').processosExecutando[indice] = processo;
-				// Redefine blocos
-				Scopes.get('RoundRobin').memoria.blocos = Fit.prototype.getBlocos();
+				// Redefine blocos de memoria no exopo
+				Scopes.get('RoundRobin').memoria.blocos = Fit.prototype.desalocaMemoria(processo.idMemoria, Scopes.get('RoundRobin').memoria.blocos);
+				// Redefine id do bloco no processo
+				while(typeof Scopes.get('RoundRobin').memoria.blocos[processo.idMemoria] == 'undefined') {
+					processo.idMemoria--;
+				}
+				// Redefine valor da variavel no escopo
+				Scopes.get('RoundRobin').processosExecutando[indice].idMemoria = processo.idMemoria;
 			} else {
-				Fit.prototype.desalocaMemoria(processo.idMemoria);
+				// best fit, apenas desaloca a memoria
+				Fit.prototype.desalocaMemoria(processo.idMemoria, Scopes.get('RoundRobin').memoria.blocos);
 			}
-			// Desaloca processo da memoria
-			Scopes.get('RoundRobin').memoria.blocos[processo.idMemoria].status = "livre";
+
 			// Aumenta memoria disponivel
 			Scopes.get('RoundRobin').memoria.tamLivre += processo.tamanho;
 			// Remove processo do core
@@ -194,9 +196,10 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 
 	Processa.prototype.alocaMemoria = function (processoAtual) {
 		// Verifica se tem memoria, ou qual bloco deve ser alocado
-		var verificacaoDeMemoria = Fit.prototype.temMemoriaDisponivel(processoAtual);
-		
-		if(verificacaoDeMemoria === false) {
+		var verificacaoDeMemoria = Fit.prototype.temMemoriaDisponivel(processoAtual, Scopes.get('RoundRobin').memoria.blocos);
+		if (verificacaoDeMemoria !== false) {
+			Scopes.get('RoundRobin').memoria.blocos = verificacaoDeMemoria;
+		} else {
 			// Aborta
 			Scopes.get('RoundRobin').processosAbortados.push(processoAtual);
 			return false;
@@ -204,16 +207,13 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 
 		var idMemoria = null;
 		
-		if (verificacaoDeMemoria === true || verificacaoDeMemoria === null) {
+		if (verificacaoDeMemoria !== false) {
 			// Busca indice do ultimo bloco da memoria
 			idMemoria = Fit.prototype.getBlocos().length - 1;
 		} else {
 			// Aloca um bloco que ja foi criado
 			idMemoria = verificacaoDeMemoria;
 		}
-
-		// Iguala os blocos de FIT com o dessa classe de View
-		Scopes.get('RoundRobin').memoria.blocos = Fit.prototype.getBlocos();
 		// Diminui o tamanho disponivel
 		Scopes.get('RoundRobin').memoria.tamLivre -= processoAtual.tamanho;
 		return idMemoria;

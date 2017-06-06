@@ -19,16 +19,17 @@ Fit.prototype.alocaMemoria = function (idMemoria, colorClass) {
 	g_memoriaDisponivel -= g_blocosDeMemoria[idMemoria].tamanho;
 }
 
-Fit.prototype.desalocaMemoria = function (idMemoria) {
+Fit.prototype.desalocaMemoria = function (idMemoria, blocos) {
+	g_blocosDeMemoria = blocos;
+	while(typeof g_blocosDeMemoria[idMemoria] == 'undefined') {
+		idMemoria--;
+	}
 	g_blocosDeMemoria[idMemoria].status = "livre";
 	g_memoriaDisponivel += g_blocosDeMemoria[idMemoria].tamanho;
 
 	if (g_algoritmo == 'merge') {
-		var merge = true;
-		while(merge !== false) {
-			merge = Fit.prototype.mergeFitMerge(idMemoria);
-		}
-		return merge;
+		Fit.prototype.mergeFitMerge(idMemoria);
+		return g_blocosDeMemoria;
 	}
 }
 
@@ -41,7 +42,10 @@ Fit.prototype.criarBloco = function (tamanho, colorClass) {
 // Retorna indice do bloco com mesmo tamanho
 // Retorna true se for pra criar um novo bloco
 // Retorna false se for para abortar
-Fit.prototype.temMemoriaDisponivel = function(processo) {
+Fit.prototype.temMemoriaDisponivel = function(processo, blocos) {
+
+	g_blocosDeMemoria = blocos;
+
 	// Verifica se tem memoria disponivel
 	if (processo.tamanho <= g_memoriaDisponivel) {
 		// Verifica se tem algum bloco de memoria com esse tamanho
@@ -52,17 +56,15 @@ Fit.prototype.temMemoriaDisponivel = function(processo) {
 			// Se tiver algum bloco disponivel, deve alocar esse bloco
 			if (idMelhorBloco !== null) {
 				Fit.prototype.alocaMemoria(idMelhorBloco, processo.colorClass);
-				return idMelhorBloco;
 			} else {
-				// Se nao tiver nehum blocodisponivel, deve criar um bloco novo
+				// Se nao tiver nehum bloco disponivel, deve criar um bloco novo
 				Fit.prototype.criarBloco(processo.tamanho, processo.colorClass);
-				return null;
 			}
 		} else {
 			// Se chegou aqui, nao possui nenhum bloco criado
 			Fit.prototype.criarBloco(processo.tamanho, processo.colorClass);
-			return true; // Manda criar um novo bloco
 		}
+		return g_blocosDeMemoria;
 	} else {
 		// Out Of Memory
 		return false;
@@ -170,22 +172,26 @@ Fit.prototype.mergeFitJuntaBlocos = function (indicePrim, indiceSec, cor) {
 
 Fit.prototype.mergeFitMerge = function(idMemoria) {
 	// Olha pra direita
-	if (typeof g_blocosDeMemoria[idMemoria+1] != 'undefined' && g_blocosDeMemoria[idMemoria+1].status == 'livre') {
-		// Redefine blocos
-		Fit.prototype.mergeFitJuntaBlocos(idMemoria, idMemoria+1, g_blocosDeMemoria[idMemoria].colorClass);
-		// Retorna que foi redefinido
-		return idMemoria;
+	for (var i = (idMemoria + 1); i < g_blocosDeMemoria.length; i++) {
+		if (typeof g_blocosDeMemoria[i] != 'undefined' && g_blocosDeMemoria[i].status == 'livre') {
+			// Redefine blocos
+			Fit.prototype.mergeFitJuntaBlocos(idMemoria, i, g_blocosDeMemoria[idMemoria].colorClass);
+		} else {
+			break;
+		}
 	}
+
 	// Olha pra esquerda
-	if (typeof g_blocosDeMemoria[idMemoria-1] != 'undefined' && g_blocosDeMemoria[idMemoria-1].status == 'livre') {
-		// Redefine blocos
-		Fit.prototype.mergeFitJuntaBlocos(idMemoria, idMemoria-1, g_blocosDeMemoria[idMemoria].colorClass);
-		// Retorna que foi redefinido
-		return (idMemoria - 1);
+	for (var i = (idMemoria - 1); i >= 0; i--) {
+		if (typeof g_blocosDeMemoria[i] != 'undefined' && g_blocosDeMemoria[i].status == 'livre') {
+			// Redefine blocos
+			Fit.prototype.mergeFitJuntaBlocos(i, idMemoria, g_blocosDeMemoria[idMemoria].colorClass);
+			// Redefine id do bloco
+			idMemoria--;
+		} else {
+			break;
+		}
 	}
-
-	return idMemoria;
-
 }
 
 Fit.prototype.mergeFit = function (tamanho, cor) {
@@ -200,6 +206,7 @@ Fit.prototype.mergeFit = function (tamanho, cor) {
 		if (g_blocosDeMemoria[i].status == 'livre' && g_blocosDeMemoria[i].tamanho >= tamanho) {
 			// Deve executar split desse bloco para se adequar ao que é preciso
 			idMelhorBloco = i;
+			break;
 		}
 	}
 	

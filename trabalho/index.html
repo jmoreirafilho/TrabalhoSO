@@ -138,6 +138,7 @@
 			var stringDados = "p1="+qtdNucleos+"&p2="+quantum+"&p3="+qtdProcIni+"&p4="+tamanho+"&p5="+algoritmo;
 			window.location = "round_robin/index.html?"+stringDados;
 		}
+
 		function executarLTG() {
 			var qtdNucleos = $("#ltg_qtd_nucleos").val();
 			var qtdProcIni = $("#ltg_qtd_processos").val();
@@ -145,6 +146,13 @@
 			var stringDados = "p1="+qtdNucleos+"&p2="+qtdProcIni;
 			window.location = "ltg/index.html?"+stringDados;
 		}
+
+		$("#rr_algoritmo").on('change', function () {
+			if($(this).val() == 'quick'){
+				//
+			}
+		});
+
 	</script>
 </body>
 </html>

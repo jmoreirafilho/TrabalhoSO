@@ -115,7 +115,7 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 				colorClass: colorClass, 
 				processamentos: Number(0),
 				tamanho: tamanho,
-				probNovaRequisicao: Math.floor(Math.random() * tempo),
+				probNovaRequisicao: Math.floor(Math.random() * 10),
 				idMemoria: null
 			});
 
@@ -143,21 +143,43 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 				Scopes.get('RoundRobin').processosAptos[processo.fila].push(Scopes.get('RoundRobin').processosExecutando[indice]);
 			}
 
-			// Remove processo do core
-			Scopes.get('RoundRobin').processosExecutando[indice] = null;
-
+			// Desaloca da memoria no Fit
+			if (g_algoritmo == 'merge') {
+				// Redefine id do bloco utilizado
+				processo.idMemoria = Fit.prototype.desalocaMemoria(processo.idMemoria);
+				// Redefine processo
+				Scopes.get('RoundRobin').processosExecutando[indice] = processo;
+				// Redefine blocos
+				Scopes.get('RoundRobin').memoria.blocos = Fit.prototype.getBlocos();
+			} else {
+				Fit.prototype.desalocaMemoria(processo.idMemoria);
+			}
 			// Desaloca processo da memoria
 			Scopes.get('RoundRobin').memoria.blocos[processo.idMemoria].status = "livre";
 			// Aumenta memoria disponivel
 			Scopes.get('RoundRobin').memoria.tamLivre += processo.tamanho;
-			// Replica em FIT
-			Fit.prototype.desalocaMemoria(processo.idMemoria);
+			// Remove processo do core
+			Scopes.get('RoundRobin').processosExecutando[indice] = null;
 
 			// Busca novo processo para adicionar no core que, agora, está vazio
 			Processa.prototype.processaProximo(indice);
 
 		} else {
 			var timeOut = (tempoRestante < 1)?tempoRestante*1000:1000;
+
+			// Verifica a chance do processo gerar uma nova requisição
+			if ($scope.processosExecutando[indice].probNovaRequisicao >= 8) {
+				// gera uma nova requisição
+				$scope.processosExecutando[indice].probNovaRequisicao = 0;
+				setTimeout(function () {
+					// console.log("gera requisição");
+					// geraNovaRequisicao(indice);
+				},(timeOut/2));
+			} else {
+				// aumenta a chance de gerar uma nova requisição
+				$scope.processosExecutando[indice].probNovaRequisicao++;
+			}
+
 			// Define o novo valor do tempo do processo.
 			// Chama um novo loop de um segundo ou menos.
 			setTimeout(function () {
@@ -183,7 +205,7 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 		var idMemoria = null;
 		
 		if (verificacaoDeMemoria === true || verificacaoDeMemoria === null) {
-			// Busca indice da memoria
+			// Busca indice do ultimo bloco da memoria
 			idMemoria = Fit.prototype.getBlocos().length - 1;
 		} else {
 			// Aloca um bloco que ja foi criado
@@ -236,7 +258,9 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 		} else {
 			// Retira da fila de aptos, pois abortou
 			Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].splice(0, 1);
-			Processa.prototype.processaProximo(indice);
+			setTimeout(function () {
+				Processa.prototype.processaProximo(indice);
+			}, 100);
 		}
 	};
 

@@ -51,7 +51,7 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 		Scopes.get('RoundRobin').quantumF3 = quantum;
 
 		// Inicializa classe de gerenciamento de memória
-		Fit(algoritmo, tamanho);
+		Fit();
 
 		// Define as variaveis globais
 		g_qtdNucleos = qtdNucleos;
@@ -122,6 +122,285 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 		}
 	}
 
+
+
+
+
+
+
+
+
+
+
+	/**
+	* ESTRUTURA PARA BEST, QUICK E MERGE FIT
+	*/
+
+	var Fit = function () {}
+
+	Fit.prototype.alocaMemoria = function (idBloco, colorClass) {
+		Scopes.get('RoundRobin').memoria.blocos[idBloco].status = "ocupado";
+		Scopes.get('RoundRobin').memoria.blocos[idBloco].coloClass = colorClass;
+		Scopes.get('RoundRobin').memoria.blocos[idBloco].usos++;
+		Scopes.get('RoundRobin').memoria.tamLivre -= Scopes.get('RoundRobin').memoria.blocos[idBloco].tamanho;
+	}
+
+	Fit.prototype.desalocaMemoria = function (idMemoria) {
+
+		while(typeof Scopes.get('RoundRobin').memoria.blocos[idMemoria] == 'undefined') {
+			idMemoria--;
+		}
+		Scopes.get('RoundRobin').memoria.blocos[idMemoria].status = "livre";
+		Scopes.get('RoundRobin').memoria.tamLivre += Scopes.get('RoundRobin').memoria.blocos[idMemoria].tamanho;
+
+		if (g_algoritmo == 'merge') {
+			Fit.prototype.mergeFitMerge(idMemoria);
+		}
+	}
+
+	Fit.prototype.criarBloco = function (tamanho, colorClass) {
+		var bloco = {tamanho: tamanho, status: "ocupado", colorClass: colorClass, usos: 1};
+		Scopes.get('RoundRobin').memoria.blocos.push(bloco);
+		Scopes.get('RoundRobin').memoria.tamLivre -= tamanho;
+		return (Scopes.get('RoundRobin').memoria.blocos.length - 1);
+	}
+
+	// Retorna idDoBloco se o bloco tiver sido alocado
+	// Retorna false se for para abortar
+	Fit.prototype.temMemoriaDisponivel = function(processo) {
+		// Verifica se tem memoria disponivel
+		if (processo.tamanho <= Scopes.get('RoundRobin').memoria.tamLivre) {
+			// Verifica se tem algum bloco de memoria
+			if (Scopes.get('RoundRobin').memoria.blocos.length > 0) {
+				// Executa algoritmo para escolher o melhor bloco ou se vai criar um bloco novo
+				var idBloco = Fit.prototype.executaAlgoritmo(processo);
+				if(idBloco == 'cria_novo'){
+					return Fit.prototype.criarBloco(processo.tamanho, processo.colorClass);
+				} else {
+					return idBloco;
+				}
+			} else {
+				// Se chegou aqui, nao possui nenhum bloco criado - retorna idBloco
+				return Fit.prototype.criarBloco(processo.tamanho, processo.colorClass);
+			}
+		} else {
+			// Out Of Memory!
+			return false;
+		}
+	};
+
+	Fit.prototype.executaAlgoritmo = function(processo){
+		switch(g_algoritmo) {
+			case 'best':
+				return Fit.prototype.bestFit(processo.tamanho, processo.colorClass);
+			case 'merge':
+				return Fit.prototype.mergeFit(processo.tamanho, processo.colorClass);
+			case 'quick':
+				return Fit.prototype.quickFit(processo.tamanho);
+		}
+	};
+
+	/**
+	* BEST FIT
+	*/
+
+	Fit.prototype.bestFit = function (tamanhoDoProcesso, corDoProcesso) {
+		var melhorBloco = null;
+
+		// Percorres todo os blocos, procurando e menor possivel
+		for (var i = 0; i < Scopes.get('RoundRobin').memoria.blocos.length; i++) {
+			// Verifica se seu tamanho é maior do que o necessário
+			if(Scopes.get('RoundRobin').memoria.blocos[i].tamanho >= tamanhoDoProcesso) {
+				// Verifica se está livre
+				if (Scopes.get('RoundRobin').memoria.blocos[i].status == "livre") {
+					// Se for o primeiro encontrado, nao precisa comparar com ninguem
+					if (melhorBloco == null) {
+						melhorBloco = i;
+						continue;
+					}
+
+					// Se não for o primeiro encontrado, compara com o melhorBloco.
+					// Se for menor que o menorBloco, deve alterar esse para ser o menorBloco
+					if (Scopes.get('RoundRobin').memoria.blocos[i].tamanho <= Scopes.get('RoundRobin').memoria.blocos[melhorBloco].tamanho) {
+						melhorBloco = i;
+					}
+				}
+			}
+		}
+
+		// Se for null, não encontrou ninguem. Cria um novo bloco
+		if (melhorBloco == null) {
+			return 'cria_novo';
+		} else {
+			// Aloca novo
+			Fit.prototype.alocaMemoria(melhorBloco, corDoProcesso);
+			return melhorBloco;
+		}
+
+	}
+
+	/**
+	* MERGE FIT
+	*/
+
+	Fit.prototype.mergeFitDivideBloco = function(tamanhoDoProcesso, idMelhorBlocoParaAlocarOProcesso) {
+		// Variavel temporaria para guardar os novos blocos
+		var blocosDeMemoriaTemp = [];
+		// Pega o tamanho restante
+		var tamanhoDoNovoBloco = Scopes.get('RoundRobin').memoria.blocos[idMelhorBlocoParaAlocarOProcesso].tamanho - tamanhoDoProcesso;
+
+		// Percorre e adiciona na variavel ate achar um antes do indice que vai ser dividido
+		var i = 0;
+		for (i = 0; i < indice; i++) {
+			blocosDeMemoriaTemp.push(Scopes.get('RoundRobin').memoria.blocos[i]);
+		}
+		// Pula o proximo bloco
+		i++;
+
+		// Pega a cor do bloco
+		var cor = Scopes.get('RoundRobin').memoria.blocos[idMelhorBlocoParaAlocarOProcesso].colorClass;
+
+		// Cria bloco 1
+		var bloco1 = {tamanho: tamanhoDoProcesso, status: 'ocupado', colorClass: cor, usos: 1};
+		blocosDeMemoriaTemp.push(bloco1);
+
+		// Se tiver um segundo bloco, cria tambem
+		if (tamanhoDoNovoBloco > 0) {
+			var bloco2 = {tamanho: tamanhoDoNovoBloco, status: 'livre', colorClass: cor, usos: 0};
+			blocosDeMemoriaTemp.push(bloco2);
+			// Pula mais um bloco
+			i++;
+		}
+
+		// Termina de preencher a variavel temporaria
+		for(n = i; n < g_blocosDeMemoria.length; n++){
+			blocosDeMemoriaTemp.push(Scopes.get('RoundRobin').memoria.blocos[n]);
+		}
+
+		// Redefine os blocs de memoria
+		Scopes.get('RoundRobin').memoria.blocos = blocosDeMemoriaTemp;
+	}
+
+	Fit.prototype.mergeFitJuntaBlocos = function (indicePrim, indiceSec, cor) {
+		var blocosDeMemoriaTemp = [];
+		var tamanhoTotal = g_blocosDeMemoria[indicePrim].tamanho + g_blocosDeMemoria[indiceSec].tamanho;
+
+		// Percorre e adiciona na variavel ate achar um antes do indice que vai ser dividido
+		var i = 0;
+		for (i = 0; i < indicePrim; i++) {
+			blocosDeMemoriaTemp.push(g_blocosDeMemoria[i]);
+		}
+
+		// Pula os dois blocos que serão unidos
+		i += 2;
+
+		// Cria novo bloco
+		var bloco = {tamanho: tamanhoTotal, status: 'livre', colorClass: cor, usos: 0};
+		blocosDeMemoriaTemp.push(bloco);
+
+		// Termina de preencher a variavel temporaria
+		for(n = i; n < g_blocosDeMemoria.length; n++){
+			blocosDeMemoriaTemp.push(g_blocosDeMemoria[n]);
+		}
+
+		// Redefine os blocs de memoria
+		g_blocosDeMemoria = blocosDeMemoriaTemp;
+	}
+
+	Fit.prototype.mergeFitMerge = function(idMemoria) {
+		// Olha pra direita
+		for (var i = (idMemoria + 1); i < g_blocosDeMemoria.length; i++) {
+			if (typeof g_blocosDeMemoria[i] != 'undefined' && g_blocosDeMemoria[i].status == 'livre') {
+				// Redefine blocos
+				Fit.prototype.mergeFitJuntaBlocos(idMemoria, i, g_blocosDeMemoria[idMemoria].colorClass);
+			} else {
+				break;
+			}
+		}
+
+		// Olha pra esquerda
+		for (var i = (idMemoria - 1); i >= 0; i--) {
+			if (typeof g_blocosDeMemoria[i] != 'undefined' && g_blocosDeMemoria[i].status == 'livre') {
+				// Redefine blocos
+				Fit.prototype.mergeFitJuntaBlocos(i, idMemoria, g_blocosDeMemoria[idMemoria].colorClass);
+				// Redefine id do bloco
+				idMemoria--;
+			} else {
+				break;
+			}
+		}
+	}
+
+	Fit.prototype.mergeFit = function (tamanhoDoProcesso) {
+
+		// Por default, não há memoria disponivel. Deve abortar.
+		var idMelhorBlocoParaAlocarOProcesso = null;
+
+		// Percorre todos os blocos
+		for (var i = 0; i < Scopes.get('RoundRobin').memoria.blocos.length; i++) {
+
+			// FirstFit para encontrar melhor bloco que esteja livre disponivel
+			if (Scopes.get('RoundRobin').memoria.blocos[i].status == 'livre' 
+				&& Scopes.get('RoundRobin').memoria.blocos[i].tamanho >= tamanhoDoProcesso) {
+				// Deve executar split desse bloco para se adequar ao que é preciso
+				idMelhorBlocoParaAlocarOProcesso = i;
+				break;
+			}
+		}
+		
+		// Se tiver encontrado um bloco disponivel, deve dividir
+		if (idMelhorBlocoParaAlocarOProcesso !== null) {
+			Fit.prototype.mergeFitDivideBloco(tamanhoDoProcesso, idMelhorBlocoParaAlocarOProcesso);
+		}
+
+	}
+
+
+	/**
+	* QUICK FIT
+	*/
+
+	Fit.prototype.quickFit = function (tamanho) {
+		var melhorBloco = null;
+		for (var i = 0; i < g_blocosDeMemoria.length; i++) {
+			// esta livre && seu tamanho é maior do preciso
+			if(g_blocosDeMemoria[i].tamanho >= tamanho) {
+				if (g_blocosDeMemoria[i].status == "livre") {
+					if (melhorBloco == null) {
+						melhorBloco = i;
+						continue;
+					}
+
+					// Se seu tamanho for melhor do que o escolhido antes, esta mais perto do menor valor necessario
+					if (g_blocosDeMemoria[i].tamanho <= g_blocosDeMemoria[melhorBloco].tamanho) {
+						melhorBloco = i;
+					}
+				}
+			}
+		}
+		return melhorBloco;
+	}
+
+	/**
+	* FIM DA ESTRUTURA PARA BEST, QUICK E MERGE FIT
+	*/	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	var Processa = function(indice, tempoRestante) {
 		// Pega processo que esta no core
 		var processo = Scopes.get('RoundRobin').processosExecutando[indice];
@@ -131,42 +410,34 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 		// em finalizados ou de volta pra sua fila de prioridade
 		if (tempoRestante <= 0 || processo.tempo <= 0) {
 
-			// Acabou o processo
+			// Acabou o processo, deve ser desalocado da memoria
 			if (processo.tempo <= 0) {
 				// Vai pra fila de finallizados
 				Scopes.get('RoundRobin').processosFinalizados.push(processo);
+
 			}
 
-			// Ainda não acabou o processo
-			if (processo.tempo > 0) {
+			if (processo.tempo > 0) { // Ainda não acabou o processo
 				// Vai pra fila de aptos novamente
 				Scopes.get('RoundRobin').processosAptos[processo.fila].push(Scopes.get('RoundRobin').processosExecutando[indice]);
 			}
 
-			// Desalocação da memoria no Fit
-			if (g_algoritmo == 'merge') {
-				// Redefine blocos de memoria no exopo
-				Scopes.get('RoundRobin').memoria.blocos = Fit.prototype.desalocaMemoria(processo.idMemoria, Scopes.get('RoundRobin').memoria.blocos);
-				// Redefine id do bloco no processo
-				while(typeof Scopes.get('RoundRobin').memoria.blocos[processo.idMemoria] == 'undefined') {
-					processo.idMemoria--;
-				}
-				// Redefine valor da variavel no escopo
-				Scopes.get('RoundRobin').processosExecutando[indice].idMemoria = processo.idMemoria;
-			} else {
-				// best fit, apenas desaloca a memoria
-				Fit.prototype.desalocaMemoria(processo.idMemoria, Scopes.get('RoundRobin').memoria.blocos);
-			}
+			// Redefine todos os blocos
+			// Scopes.get('RoundRobin').memoria.blocos[processo.idMemoria].status = 'livre';
+			
+			Fit.prototype.desalocaMemoria(processo.idMemoria);
 
 			// Aumenta memoria disponivel
-			Scopes.get('RoundRobin').memoria.tamLivre += processo.tamanho;
+			// Scopes.get('RoundRobin').memoria.tamLivre += processo.tamanho;
+
+
 			// Remove processo do core
 			Scopes.get('RoundRobin').processosExecutando[indice] = null;
 
 			// Busca novo processo para adicionar no core que, agora, está vazio
 			Processa.prototype.processaProximo(indice);
 
-		} else {
+		} else { // Manda processar a requisição
 			var timeOut = (tempoRestante < 1)?tempoRestante*1000:1000;
 
 			// Verifica a chance do processo gerar uma nova requisição
@@ -196,27 +467,14 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 
 	Processa.prototype.alocaMemoria = function (processoAtual) {
 		// Verifica se tem memoria, ou qual bloco deve ser alocado
-		var verificacaoDeMemoria = Fit.prototype.temMemoriaDisponivel(processoAtual, Scopes.get('RoundRobin').memoria.blocos);
-		if (verificacaoDeMemoria !== false) {
-			Scopes.get('RoundRobin').memoria.blocos = verificacaoDeMemoria;
-		} else {
-			// Aborta
+		var idMemoria = Fit.prototype.temMemoriaDisponivel(processoAtual);
+
+		if (idMemoria !== false) { // Alocou a memoria
+			return idMemoria;
+		} else { // Deve abortar - Out Of Memory!
 			Scopes.get('RoundRobin').processosAbortados.push(processoAtual);
 			return false;
 		}
-
-		var idMemoria = null;
-		
-		if (verificacaoDeMemoria !== false) {
-			// Busca indice do ultimo bloco da memoria
-			idMemoria = Fit.prototype.getBlocos().length - 1;
-		} else {
-			// Aloca um bloco que ja foi criado
-			idMemoria = verificacaoDeMemoria;
-		}
-		// Diminui o tamanho disponivel
-		Scopes.get('RoundRobin').memoria.tamLivre -= processoAtual.tamanho;
-		return idMemoria;
 	}
 
 	Processa.prototype.processaProximo = function(indice) {

@@ -29,8 +29,9 @@ Fit.prototype.desalocaMemoria = function (idMemoria, blocos) {
 
 	if (g_algoritmo == 'merge') {
 		Fit.prototype.mergeFitMerge(idMemoria);
-		return g_blocosDeMemoria;
 	}
+	
+	return g_blocosDeMemoria;
 }
 
 Fit.prototype.criarBloco = function (tamanho, colorClass) {

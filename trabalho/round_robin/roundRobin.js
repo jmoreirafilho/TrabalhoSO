@@ -4,7 +4,8 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 	Scopes.store('RoundRobin', $scope);
 
 	// Variaveis globais para parametros iniciais
-	var g_qtdNucleos = g_quantum = g_qtdProcsIniciais = 0;
+	var g_qtdNucleos = g_quantum = g_qtdProcsIniciais = g_tamanhoMemoria = g_intervalo = g_qtdListas = 0;
+	var g_algoritmo = "";
 
 	// Variaveis globais para fator de cada fila de prioridade
 	var g_f0 = 2.1;
@@ -288,6 +289,12 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 	g_qtdNucleos = new RegExp('[\?&]p1=([^&#]*)').exec(window.location.href)[1];
 	g_quantum = new RegExp('[\?&]p2=([^&#]*)').exec(window.location.href)[1];
 	g_qtdProcsIniciais = new RegExp('[\?&]p3=([^&#]*)').exec(window.location.href)[1];
+	g_tamanhoMemoria = new RegExp('[\?&]p4=([^&#]*)').exec(window.location.href)[1];
+	g_algoritmo = new RegExp('[\?&]p5=([^&#]*)').exec(window.location.href)[1];
+	if (g_algoritmo == 'quick') {
+		g_intervalo = new RegExp('[\?&]p6=([^&#]*)').exec(window.location.href)[1];
+		g_qtdListas = new RegExp('[\?&]p7=([^&#]*)').exec(window.location.href)[1];
+	}
 
 	// #3 - Método para parametrizar escalonador
 	Scopes.get('RoundRobin').iniciaRoundRobin = function () {

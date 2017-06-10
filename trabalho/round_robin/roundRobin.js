@@ -21,6 +21,10 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 	Scopes.get('RoundRobin').processosAptos = {0: [], 1: [], 2: [], 3: []};
 	// Fila de processos finalizados
 	Scopes.get('RoundRobin').processosFinalizados = [];
+	// Fila de memoria
+	Scopes.get('RoundRobin').memoria = {tamanho: null, tamLivre: null, blcoos: []};
+	// Fila de abortados
+	Scopes.get('RoundRobin').processosAbortados = [];
 
 	// Cria um fila de eventos para controlar concorrência
 	Scopes.get('RoundRobin').g_filaDeEventos = [];
@@ -93,6 +97,9 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 	}
 
 	Processa.prototype.iniciaRoundRobin = function() {
+		Scopes.get('RoundRobin').memoria.tamanho = g_tamanhoMemoria;
+		Scopes.get('RoundRobin').memoria.tamLivre = g_tamanhoMemoria;
+
 		Scopes.get('RoundRobin').quantumF0 = g_f0 * g_quantum;
 		Scopes.get('RoundRobin').quantumF1 = g_f1 * g_quantum;
 		Scopes.get('RoundRobin').quantumF2 = g_f2 * g_quantum;

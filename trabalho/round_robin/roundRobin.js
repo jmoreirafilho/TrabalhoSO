@@ -22,12 +22,54 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 	// Fila de processos finalizados
 	Scopes.get('RoundRobin').processosFinalizados = [];
 	// Fila de memoria
-	Scopes.get('RoundRobin').memoria = {tamanho: null, tamLivre: null, blcoos: []};
+	Scopes.get('RoundRobin').memoria = {tamanho: null, tamLivre: null, blocos: []};
 	// Fila de abortados
 	Scopes.get('RoundRobin').processosAbortados = [];
 
 	// Cria um fila de eventos para controlar concorrência
 	Scopes.get('RoundRobin').g_filaDeEventos = [];
+
+	/**
+	* Classe de Memoria
+	*/
+
+	var Fit = function() {};
+
+	Fit.prototype.desalocaMemoria = function (idDoCore) {
+		for (var i = 0; i < Scopes.get('RoundRobin').memoria.blocos.length; i++) {
+			if(Scopes.get('RoundRobin').memoria.blocos[i].idDoCore = idDoCore) {
+				// Altera o status
+				Scopes.get('RoundRobin').memoria.blocos[i].status = 'livre';
+				// Remove id do core
+				Scopes.get('RoundRobin').memoria.blocos[i].idDoCore = null;
+				// Aumenta tamanho livre
+				Scopes.get('RoundRobin').memoria.tamLivre += Scopes.get('RoundRobin').processosExecutando[idDoCore].tamanho;
+			}
+		}
+
+		if (g_algoritmo == 'merge') {
+			for (var i = 0; i < Scopes.get('RoundRobin').memoria.blocos.length - 1; i++) {
+				if(Scopes.get('RoundRobin').memoria.blocos[i].status == 'livre' &&
+					Scopes.get('RoundRobin').memoria.blocos[i+1].status == 'livre') {
+					// Cria novo bloco
+					var novoBloco = Scopes.get('RoundRobin').memoria.blocos[i];
+
+					// Calcula novo tamanho
+					novoBloco.tamanho += Scopes.get('RoundRobin').memoria.blocos[i+1].tamanho;
+
+					// Remove os dois bloco que estavam livres
+					Scopes.get('RoundRobin').memoria.blocos.splice(i, 2);
+
+					// Adiciona na fila de blocos da memoria
+					Scopes.get('RoundRobin').memoria.blocos.push(novoBloco);
+				}
+			}
+		}
+	}
+
+	/**
+	* Classe de Processamento
+	*/
 
 	var Processa = function() {}
 
@@ -74,6 +116,7 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 
 			switch (tipo) {
 				case 'finalizado':
+					Fit.prototype.desalocaMemoria(idDaFilaDoProcesso);
 					// Adiciona na fila de finalizados
 					Scopes.get('RoundRobin').processosFinalizados.push(processo);
 					// Remove de Executando

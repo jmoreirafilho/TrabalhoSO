@@ -22,48 +22,9 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 	Scopes.get('RoundRobin').processosFinalizados = [];
 
 	// Cria um fila de eventos para controlar concorrência
-	var g_filaDeEventos = [];
+	Scopes.get('RoundRobin').g_filaDeEventos = [];
 
-	var Processa = function(indice, tempoRestante) {
-		// Pega processo que esta no core
-		var processo = Scopes.get('RoundRobin').processosExecutando[indice];
-
-
-		// Se tiver 0 de tempo restante de Qauntum, deve jogar o processo
-		// em finalizados ou de volta pra sua fila de prioridade
-		if (tempoRestante <= 0 || processo.tempo <= 0) {
-
-			// Acabou o processo
-			if (processo.tempo <= 0) {
-				// Vai pra fila de finallizados
-				Scopes.get('RoundRobin').processosFinalizados.push(processo);
-			}
-
-			// Ainda não acabou o processo
-			if (processo.tempo > 0) {
-				// Vai pra fila de aptos novamente
-				Scopes.get('RoundRobin').processosAptos[processo.fila].push(Scopes.get('RoundRobin').processosExecutando[indice]);
-			}
-
-			// Remove processo do core
-			Scopes.get('RoundRobin').processosExecutando[indice] = null;
-
-			// Busca novo processo para adicionar no core que, agora, está vazio
-			Processa.prototype.processaProximo(indice);
-
-		} else {
-			var timeOut = (tempoRestante < 1)?tempoRestante*1000:1000;
-			// Define o novo valor do tempo do processo.
-			// Chama um novo loop de um segundo ou menos.
-			setTimeout(function () {
-				Scopes.get('RoundRobin').$apply(function () {
-					$scope.processosExecutando[indice].tempo -= (timeOut / 1000);
-					tempoRestante--;
-					Processa.prototype.processa(indice, tempoRestante);
-				});
-			}, timeOut);
-		}
-	}
+	var Processa = function() {}
 
 	Processa.prototype.processa = function (indice, tempoRestante) {
 		// Pega processo que esta no core
@@ -76,21 +37,15 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 
 			// Acabou o processo
 			if (processo.tempo <= 0) {
-				// Vai pra fila de finallizados
-				Scopes.get('RoundRobin').processosFinalizados.push(processo);
+				// Adiciona evento para jogar o processo para fila de finalizados
+				Scopes.get('RoundRobin').g_filaDeEventos.push({tipo: 'finalizado', id: indice});
 			}
 
 			// Ainda não acabou o processo
 			if (processo.tempo > 0) {
-				// Vai pra fila de aptos novamente
-				Scopes.get('RoundRobin').processosAptos[processo.fila].push(Scopes.get('RoundRobin').processosExecutando[indice]);
+				// Adiciona evento para voltar pra fila de aptos
+				Scopes.get('RoundRobin').g_filaDeEventos.push({tipo: 'nao_finalizado', id: indice});
 			}
-
-			// Remove processo do core
-			Scopes.get('RoundRobin').processosExecutando[indice] = null;
-
-			// Busca novo processo para adicionar no core que, agora, está vazio
-			Processa.prototype.processaProximo(indice);
 
 		} else {
 			var timeOut = (tempoRestante < 1)?tempoRestante*1000:1000;
@@ -98,14 +53,43 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 			// Chama um novo loop de um segundo ou menos.
 			setTimeout(function () {
 				Scopes.get('RoundRobin').$apply(function () {
-					$scope.processosExecutando[indice].tempo -= (timeOut / 1000);
+					Scopes.get('RoundRobin').processosExecutando[indice].tempo -= (timeOut / 1000);
 					tempoRestante--;
 					Processa.prototype.processa(indice, tempoRestante);
 				});
 			}, timeOut);
 		}
 	}
-	
+
+	Processa.prototype.executaEventos = function () {
+		if (Scopes.get('RoundRobin').g_filaDeEventos.length > 0) {
+			var tipo = Scopes.get('RoundRobin').g_filaDeEventos[0].tipo;
+			var idDaFilaDoProcesso = Scopes.get('RoundRobin').g_filaDeEventos[0].id;
+			var processo = Scopes.get('RoundRobin').processosExecutando[idDaFilaDoProcesso];
+
+			switch (tipo) {
+				case 'finalizado':
+					// Adiciona na fila de finalizados
+					Scopes.get('RoundRobin').processosFinalizados.push(processo);
+					// Remove de Executando
+					Scopes.get('RoundRobin').processosExecutando[idDaFilaDoProcesso] = null;
+					// Executa proximo
+					Processa.prototype.processaProximo(idDaFilaDoProcesso);
+					break;
+				case 'nao_finalizado':
+					// Adiciona de volta na fila de aptos
+					Scopes.get('RoundRobin').processosAptos[processo.fila].push(processo);
+					// Remove de Executando
+					Scopes.get('RoundRobin').processosExecutando[idDaFilaDoProcesso] = null;
+					// Executa proximo
+					Processa.prototype.processaProximo(idDaFilaDoProcesso);
+					break;
+			}
+
+			// Remove esse evento
+			Scopes.get('RoundRobin').g_filaDeEventos.splice(0, 1);
+		}
+	}
 
 	Processa.prototype.iniciaRoundRobin = function() {
 		Scopes.get('RoundRobin').quantumF0 = g_f0 * g_quantum;
@@ -115,7 +99,7 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 
 		// Preenche fila de processos em execução (cores) com nenhum valor
 		for (var i = 0; i < g_qtdNucleos; i++) {
-			$scope.processosExecutando.push(null);
+			Scopes.get('RoundRobin').processosExecutando.push(null);
 		}
 
 		// Preenche fila de aptos.
@@ -167,37 +151,40 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 
 	Processa.prototype.processaProximo = function(indice) {
 		// Busca proximo indice do processo na fila de prioridade
-		Processa.prototype.proximaFila();
+		if(Processa.prototype.proximaFila(0)){
+			// Se a fila buscada não tiver mais nenhum processo, verifica se os cores
+			// estão vazios
+			if(Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].length <= 0) {
+				var aindaTemAlgumProcesso = false;
+				for (var i = 0; i < g_qtdNucleos; i++) {
+					// Se algum core nao estiver vazio, ainda tem algo processando
+					if (Scopes.get('RoundRobin').processosExecutando[i] != null) {
+						aindaTemAlgumProcesso = true;
+					}
+				}
 
-		// Se a fila buscada não tiver mais nenhum processo, verifica se os cores
-		// estão vazios
-		if(Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].length <= 0) {
-			var aindaTemAlgumProcesso = false;
-			for (var i = 0; i < g_qtdNucleos; i++) {
-				// Se algum core nao estiver vazio, ainda tem algo processando
-				if (Scopes.get('RoundRobin').processosExecutando[i] != null) {
-					aindaTemAlgumProcesso = true;
+				// Se ainda tiver algum processo, o metodo se chama.
+				if (aindaTemAlgumProcesso) {
+					Processa.prototype.processaProximo(indice);
+					return;
 				}
 			}
 
-			// Se ainda tiver algum processo, o metodo se chama.
-			if (aindaTemAlgumProcesso) {
-				Processa.prototype.processaProximo(indice);
-				return;
-			}
+			// Incrementa contador de quantas vezes foi processado
+			Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0].processamentos++;
+			// Adiciona processo dessa fila no core
+			Scopes.get('RoundRobin').processosExecutando[indice] = Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0];
+			// Remove processo da fila de aptos
+			Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].splice(0, 1);
+
+			Processa.prototype.processa(indice, Scopes.get('RoundRobin').processosExecutando[indice].quantum);
 		}
-
-		// Incrementa contador de quantas vezes foi processado
-		Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0].processamentos++;
-		// Adiciona processo dessa fila no core
-		Scopes.get('RoundRobin').processosExecutando[indice] = Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0];
-		// Remove processo da fila de aptos
-		Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].splice(0, 1);
-
-		Processa.prototype.processa(indice, Scopes.get('RoundRobin').processosExecutando[indice].quantum);
 	};
 
-	Processa.prototype.proximaFila = function () {
+	Processa.prototype.proximaFila = function (tentativas) {
+		if (tentativas >= 500) {
+			return false;
+		}
 		// Se for o primeiro processo, seta o indice para 0 e sai
 		if (g_indiceDaProximaFila == null) {
 			g_indiceDaProximaFila = 0;
@@ -206,6 +193,7 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 
 		// Incrementa o indice
 		g_indiceDaProximaFila++;
+		tentativas++;
 			
 		// Se for um indice divisivel por 4, significa que é um indice de uma
 		// fila de prioridade que nao existe. Zera o indice, para ir para a
@@ -216,8 +204,9 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 
 		// Se não tiver nenhum processo nessa fila de aptos, busca em outra fila.
 		if (Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].length == 0) {
-			Processa.prototype.proximaFila();
+			return Processa.prototype.proximaFila(tentativas);
 		}
+		return true;
 	}
 
 	Processa.prototype.adicionaNovoProcesso = function() {
@@ -269,11 +258,11 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 		for (var indiceNucleo = 0; indiceNucleo < g_qtdNucleos; indiceNucleo++) {
 			if (Scopes.get('RoundRobin').processosExecutando[indiceNucleo] == null) {
 
-				Processa.prototype.proximaFila();
+				Processa.prototype.proximaFila(0);
 
 				// Incrementa contador de quantas vezes foi processado
 				Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0].processamentos++;
-				
+
 				Scopes.get('RoundRobin').processosExecutando[indiceNucleo] = Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0];
 				Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].splice(0, 1);
 
@@ -286,8 +275,8 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 
 				// Inicia um timeOut pra cada core.
 				Processa.prototype.processa(indiceNucleo, tempoRestante);
-
 			}
+
 		}
 	}
 
@@ -306,6 +295,13 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 	}
 
 	// #4 - Método para iniciar processamento dos processos
+	Scopes.get('RoundRobin').$watch(function () {
+		return Scopes.get('RoundRobin').g_filaDeEventos.length;
+	}, function (newValue, oldValue) {
+		if (newValue > oldValue && Scopes.get('RoundRobin').g_filaDeEventos.length > 0) {
+			Processa.prototype.executaEventos();
+		}
+	});
 	Scopes.get('RoundRobin').iniciaProcessamento = function () {
 		Processa.prototype.iniciaProcessamento();
 	}

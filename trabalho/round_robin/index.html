@@ -106,6 +106,17 @@
 	<script type="text/javascript" src="../../includes/angular.min.js"></script>
 	<script>
 		var app = angular.module('view', []);
+		app.factory('Scopes', function($rootScope) {
+		var mem = {};
+		return {
+			store : function(key, value) {
+				mem[key] = value;
+			},
+			get : function(key) {
+				return mem[key];
+			}
+		};
+	});
 	</script>
 	<script type="text/javascript" src="Fit.js"></script>
 	<script type="text/javascript" src="roundRobin.js"></script>

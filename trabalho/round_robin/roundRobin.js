@@ -36,8 +36,11 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 	var Fit = function() {};
 
 	Fit.prototype.desalocaMemoria = function (idDoCore) {
+		console.log("Core: "+idDoCore);
+		// Percorre os blocos ate achar o bloco que deve ser desalocado
 		for (var i = 0; i < Scopes.get('RoundRobin').memoria.blocos.length; i++) {
-			if(Scopes.get('RoundRobin').memoria.blocos[i].idDoCore = idDoCore) {
+			if(Scopes.get('RoundRobin').memoria.blocos[i].idDoCore == idDoCore) {
+				console.log("Desalocou: "+i);
 				// Altera o status
 				Scopes.get('RoundRobin').memoria.blocos[i].status = 'livre';
 				// Remove id do core
@@ -47,6 +50,7 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 			}
 		}
 
+		// Se for mergeFit deve unir os blocos que estao livres e sao adjacentes
 		if (g_algoritmo == 'merge') {
 			for (var i = 0; i < Scopes.get('RoundRobin').memoria.blocos.length - 1; i++) {
 				if(Scopes.get('RoundRobin').memoria.blocos[i].status == 'livre' &&
@@ -65,6 +69,64 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 				}
 			}
 		}
+	}
+
+	Fit.prototype.alocaMemoria = function (idDoCore, processo) {
+		switch (g_algoritmo) {
+			case 'best':
+				// Se tiver blocos criados, pode usar um bloco
+				if (Scopes.get('RoundRobin').memoria.blocos.length > 0) {
+					// Percorre os blocos
+					var melhorIdAteAgora = null;
+					for (var i = 0; i < Scopes.get('RoundRobin').memoria.blocos.length; i++) {
+						// Verifica se esta livre e no tamanho aceitavel
+						if (Scopes.get('RoundRobin').memoria.blocos[i].status == 'livre' &&
+							Scopes.get('RoundRobin').memoria.blocos[i].tamanho >= processo.tamanho) {
+							// grava o id como melhor, por enquanto
+							melhorIdAteAgora = i;
+						}
+					}
+					if (melhorIdAteAgora == null) {
+						// Só achou blocos pequenos demais.
+						// Cria novo bloco
+						if (!Fit.prototype.criaNovoBloco(processo.tamanho, processo.colorClass, idDoCore)) {
+							// Não criou o bloco, aborta!
+							Processa.prototype.abortaProcesso(idDoCore);
+							return false;
+						}
+						return true; // Criou o bloco
+					} else {
+						// Usa melhor bloco encontrado
+						Scopes.get('RoundRobin').memoria.blocos[melhorIdAteAgora].status = 'ocupado';
+						Scopes.get('RoundRobin').memoria.blocos[melhorIdAteAgora].colorClass = processo.colorClass;
+						Scopes.get('RoundRobin').memoria.blocos[melhorIdAteAgora].idDoCore = idDoCore;
+						Scopes.get('RoundRobin').memoria.tamLivre -= processo.tamanho;
+						return true;
+					}
+				} else {
+					// Cria novo bloco
+					if (!Fit.prototype.criaNovoBloco(processo.tamanho, processo.colorClass, idDoCore)) {
+						// Não criou o bloco, aborta!
+						Processa.prototype.abortaProcesso(idDoCore);
+						return false;
+					}
+					return true; // Criou o bloco
+				}
+				break;
+		}
+	}
+
+	Fit.prototype.criaNovoBloco = function (tamanho, colorClass, idDoCore) {
+		// Não tem tamanho disponivel, aborta!
+		if (Scopes.get('RoundRobin').memoria.tamLivre < tamanho) {
+			return false;
+		}
+
+		var novoBloco = {tamanho: tamanho, status: 'ocupado', colorClass: colorClass, idDoCore: idDoCore};
+		Scopes.get('RoundRobin').memoria.blocos.push(novoBloco);
+		Scopes.get('RoundRobin').memoria.tamLivre -= tamanho;
+		console.log('criou bloco');
+		return true; // Criou o bloco
 	}
 
 	/**
@@ -116,6 +178,7 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 
 			switch (tipo) {
 				case 'finalizado':
+					// Deve desalocar o bloco da memoria
 					Fit.prototype.desalocaMemoria(idDaFilaDoProcesso);
 					// Adiciona na fila de finalizados
 					Scopes.get('RoundRobin').processosFinalizados.push(processo);
@@ -125,12 +188,34 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 					Processa.prototype.processaProximo(idDaFilaDoProcesso);
 					break;
 				case 'nao_finalizado':
+					// Deve desalocar o bloco da memoria
+					Fit.prototype.desalocaMemoria(idDaFilaDoProcesso);
 					// Adiciona de volta na fila de aptos
 					Scopes.get('RoundRobin').processosAptos[processo.fila].push(processo);
 					// Remove de Executando
 					Scopes.get('RoundRobin').processosExecutando[idDaFilaDoProcesso] = null;
 					// Executa proximo
 					Processa.prototype.processaProximo(idDaFilaDoProcesso);
+					break;
+				case 'add_processo':
+					Processa.prototype.proximaFila(0);
+					if(Fit.prototype.alocaMemoria(idDaFilaDoProcesso, Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0])){
+						// Incrementa contador de quantas vezes foi processado
+						Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0].processamentos++;
+						// Adiciona na fila do core
+						Scopes.get('RoundRobin').processosExecutando[idDaFilaDoProcesso] = Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0];
+						// Remove da fila de aptos
+						Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].splice(0, 1);
+						// Recalcula tempo restante do processo
+						var tempoRestante = Scopes.get('RoundRobin').processosExecutando[idDaFilaDoProcesso].quantum;
+						if (Scopes.get('RoundRobin').processosExecutando[idDaFilaDoProcesso].tempo < tempoRestante) {
+							tempoRestante = Scopes.get('RoundRobin').processosExecutando[idDaFilaDoProcesso].tempo;
+						}
+						// Inicia um timeOut pra esse processo.
+						Processa.prototype.processa(idDaFilaDoProcesso, tempoRestante);
+					} else {
+						Processa.prototype.processaProximo(indice);
+					}
 					break;
 			}
 
@@ -201,12 +286,12 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 	};
 
 	Processa.prototype.processaProximo = function(indice) {
-		// Busca proximo indice do processo na fila de prioridade
+		// Verifica que tem algum processo ainda
 		if(Processa.prototype.proximaFila(0)){
-			// Se a fila buscada não tiver mais nenhum processo, verifica se os cores
-			// estão vazios
+			// Verifica se não tem processos na fila buscada
 			if(Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].length <= 0) {
 				var aindaTemAlgumProcesso = false;
+				// Verifica os cores
 				for (var i = 0; i < g_qtdNucleos; i++) {
 					// Se algum core nao estiver vazio, ainda tem algo processando
 					if (Scopes.get('RoundRobin').processosExecutando[i] != null) {
@@ -221,19 +306,25 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 				}
 			}
 
-			// Incrementa contador de quantas vezes foi processado
-			Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0].processamentos++;
-			// Adiciona processo dessa fila no core
-			Scopes.get('RoundRobin').processosExecutando[indice] = Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0];
-			// Remove processo da fila de aptos
-			Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].splice(0, 1);
+			// Aloca memoria
+			if(Fit.prototype.alocaMemoria(indice, Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0])){
+				// Incrementa contador de quantas vezes foi processado
+				Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0].processamentos++;
+				// Adiciona processo dessa fila no core
+				Scopes.get('RoundRobin').processosExecutando[indice] = Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0];
+				// Remove processo da fila de aptos
+				Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].splice(0, 1);
 
-			Processa.prototype.processa(indice, Scopes.get('RoundRobin').processosExecutando[indice].quantum);
+				Processa.prototype.processa(indice, Scopes.get('RoundRobin').processosExecutando[indice].quantum);
+			} else {// Não conseguiu alocar a memoria
+				Processa.prototype.processaProximo(indice);
+			}
 		}
 	};
 
 	Processa.prototype.proximaFila = function (tentativas) {
 		if (tentativas >= 500) {
+			// Acabaram as tentativas, nao tem mais nada
 			return false;
 		}
 		// Se for o primeiro processo, seta o indice para 0 e sai
@@ -257,6 +348,7 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 		if (Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].length == 0) {
 			return Processa.prototype.proximaFila(tentativas);
 		}
+		// Tem processo
 		return true;
 	}
 
@@ -308,27 +400,17 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 	Processa.prototype.iniciaProcessamento = function () {
 		for (var indiceNucleo = 0; indiceNucleo < g_qtdNucleos; indiceNucleo++) {
 			if (Scopes.get('RoundRobin').processosExecutando[indiceNucleo] == null) {
-
-				Processa.prototype.proximaFila(0);
-
-				// Incrementa contador de quantas vezes foi processado
-				Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0].processamentos++;
-
-				Scopes.get('RoundRobin').processosExecutando[indiceNucleo] = Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0];
-				Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].splice(0, 1);
-
-
-				var tempoRestante = Scopes.get('RoundRobin').processosExecutando[indiceNucleo].quantum;
-
-				if (Scopes.get('RoundRobin').processosExecutando[indiceNucleo].tempo < tempoRestante) {
-					tempoRestante = Scopes.get('RoundRobin').processosExecutando[indiceNucleo].tempo;
-				}
-
-				// Inicia um timeOut pra cada core.
-				Processa.prototype.processa(indiceNucleo, tempoRestante);
+				Scopes.get('RoundRobin').g_filaDeEventos.push({tipo: 'add_processo', id: indiceNucleo});
 			}
 
 		}
+	}
+
+	Processa.prototype.abortaProcesso = function (idDoCore) {
+		//Adiciona na fila de abortados
+		Scopes.get('RoundRobin').processosAbortados.push(Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila][0]);
+		// Remove da fila de aptos
+		Scopes.get('RoundRobin').processosAptos[g_indiceDaProximaFila].splice(0, 1);
 	}
 
 	/**
@@ -355,9 +437,7 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 	Scopes.get('RoundRobin').$watch(function () {
 		return Scopes.get('RoundRobin').g_filaDeEventos.length;
 	}, function (newValue, oldValue) {
-		if (newValue > oldValue && Scopes.get('RoundRobin').g_filaDeEventos.length > 0) {
-			Processa.prototype.executaEventos();
-		}
+		Processa.prototype.executaEventos();
 	});
 	Scopes.get('RoundRobin').iniciaProcessamento = function () {
 		Processa.prototype.iniciaProcessamento();

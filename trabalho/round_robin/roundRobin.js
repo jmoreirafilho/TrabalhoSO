@@ -36,11 +36,9 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 	var Fit = function() {};
 
 	Fit.prototype.desalocaMemoria = function (idDoCore) {
-		console.log("Core: "+idDoCore);
 		// Percorre os blocos ate achar o bloco que deve ser desalocado
 		for (var i = 0; i < Scopes.get('RoundRobin').memoria.blocos.length; i++) {
 			if(Scopes.get('RoundRobin').memoria.blocos[i].idDoCore == idDoCore) {
-				console.log("Desalocou: "+i);
 				// Altera o status
 				Scopes.get('RoundRobin').memoria.blocos[i].status = 'livre';
 				// Remove id do core
@@ -125,7 +123,6 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 		var novoBloco = {tamanho: tamanho, status: 'ocupado', colorClass: colorClass, idDoCore: idDoCore};
 		Scopes.get('RoundRobin').memoria.blocos.push(novoBloco);
 		Scopes.get('RoundRobin').memoria.tamLivre -= tamanho;
-		console.log('criou bloco');
 		return true; // Criou o bloco
 	}
 

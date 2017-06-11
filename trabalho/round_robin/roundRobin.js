@@ -53,17 +53,10 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 			for (var i = 0; i < Scopes.get('RoundRobin').memoria.blocos.length - 1; i++) {
 				if(Scopes.get('RoundRobin').memoria.blocos[i].status == 'livre' &&
 					Scopes.get('RoundRobin').memoria.blocos[i+1].status == 'livre') {
-					// Cria novo bloco
-					var novoBloco = Scopes.get('RoundRobin').memoria.blocos[i];
-
-					// Calcula novo tamanho
-					novoBloco.tamanho += Scopes.get('RoundRobin').memoria.blocos[i+1].tamanho;
-
-					// Remove os dois bloco que estavam livres
-					Scopes.get('RoundRobin').memoria.blocos.splice(i, 2);
-
-					// Adiciona na fila de blocos da memoria
-					Scopes.get('RoundRobin').memoria.blocos.push(novoBloco);
+					// Aumenta o tamanho desse bloco
+					Scopes.get('RoundRobin').memoria.blocos[i].tamanho += Scopes.get('RoundRobin').memoria.blocos[i+1].tamanho;
+					// Remove o segundo bloco
+					Scopes.get('RoundRobin').memoria.blocos.splice(i+1, 1);
 				}
 			}
 		}
@@ -101,6 +94,55 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 						Scopes.get('RoundRobin').memoria.tamLivre -= processo.tamanho;
 						return true;
 					}
+				} else {
+					// Cria novo bloco
+					if (!Fit.prototype.criaNovoBloco(processo.tamanho, processo.colorClass, idDoCore)) {
+						// Não criou o bloco, aborta!
+						Processa.prototype.abortaProcesso(idDoCore);
+						return false;
+					}
+					return true; // Criou o bloco
+				}
+				break;
+			case 'merge':
+				// Se tiver blocos criados, pode usar um bloco
+				if (Scopes.get('RoundRobin').memoria.blocos.length > 0) {
+					// Percorre os blocos
+					for (var i = 0; i < Scopes.get('RoundRobin').memoria.blocos.length; i++) {
+						// Verifica se esta livre e no tamanho aceitavel
+						if (Scopes.get('RoundRobin').memoria.blocos[i].status == 'livre' &&
+							Scopes.get('RoundRobin').memoria.blocos[i].tamanho >= processo.tamanho) {
+							// Utiliza esse bloco, fazendo split caso necessario
+
+							// Verifica se precisa de split (redimensiona esse bloco e cria novo com tamanho restante)
+							if (Scopes.get('RoundRobin').memoria.blocos[i].tamanho > processo.tamanho) {
+								// Pega tamanho restante
+								var tamanhoRestante = Scopes.get('RoundRobin').memoria.blocos[i].tamanho - processo.tamanho;
+								// Redefine tamanho do bloco
+								Scopes.get('RoundRobin').memoria.blocos[i].tamanho = processo.tamanho;
+								// Cria novo bloco
+								var novoBloco = {tamanho: tamanhoRestante, status: 'livre', colorClass: processo.colorClass, idDoCore: null};
+								// Adiciona novo bloco na memoria
+								Scopes.get('RoundRobin').memoria.blocos.push(novoBloco);
+							}
+
+							Scopes.get('RoundRobin').memoria.blocos[i].status = 'ocupado';
+							Scopes.get('RoundRobin').memoria.blocos[i].colorClass = processo.colorClass;
+							Scopes.get('RoundRobin').memoria.blocos[i].idDoCore = idDoCore;
+							Scopes.get('RoundRobin').memoria.tamLivre -= processo.tamanho;
+							return true;
+						}
+					}
+
+					// Se chegou aqui, nao achou nenhum bloco disponivel. Cria novo ou aborta!
+
+					// Cria novo bloco
+					if (!Fit.prototype.criaNovoBloco(processo.tamanho, processo.colorClass, idDoCore)) {
+						// Não criou o bloco, aborta!
+						Processa.prototype.abortaProcesso(idDoCore);
+						return false;
+					}
+					return true; // Criou o bloco
 				} else {
 					// Cria novo bloco
 					if (!Fit.prototype.criaNovoBloco(processo.tamanho, processo.colorClass, idDoCore)) {
@@ -211,7 +253,7 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 						// Inicia um timeOut pra esse processo.
 						Processa.prototype.processa(idDaFilaDoProcesso, tempoRestante);
 					} else {
-						Processa.prototype.processaProximo(indice);
+						Processa.prototype.processaProximo(idDaFilaDoProcesso);
 					}
 					break;
 			}

@@ -89,6 +89,17 @@
 				</div>
 			</div>
 		</div>
+
+		<div class="row hidden" id="quickEnable">
+			<div class="col-xs-12">
+				<h3>Fila de Processos <small>({{processosAbortados.length}})</small></h3>
+				<div class="nucleo" ng-class="processo.colorClass" ng-repeat="processo in processosAbortados track by $index">
+					{{processo.nome}}<br />
+					{{processo.processamentos}}<span ng-show="processo.processamentos > 0">x</span><br />
+					{{processo.tamanho}}b
+				</div>
+			</div>
+		</div>
 	</div>
 
 	<div class="rodape"></div>
@@ -107,18 +118,17 @@
 	<script>
 		var app = angular.module('view', []);
 		app.factory('Scopes', function($rootScope) {
-		var mem = {};
-		return {
-			store : function(key, value) {
-				mem[key] = value;
-			},
-			get : function(key) {
-				return mem[key];
-			}
-		};
-	});
+			var mem = {};
+			return {
+				store : function(key, value) {
+					mem[key] = value;
+				},
+				get : function(key) {
+					return mem[key];
+				}
+			};
+		});
 	</script>
-	<script type="text/javascript" src="Fit.js"></script>
 	<script type="text/javascript" src="roundRobin.js"></script>
 </body>
 </html>

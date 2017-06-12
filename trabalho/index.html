@@ -82,6 +82,20 @@
 							</div>
 						</div>
 					</div>
+					<div class="row hidden" id="quickEnable">
+						<div class="col-sm-6">
+							<div class="form-group">
+								<label>Intervalo</label>
+								<input type="text" id="rr_intervalo" class="form-control">
+							</div>
+						</div>
+						<div class="col-sm-6">
+							<div class="form-group">
+								<label>Qtd Filas</label>
+								<input type="text" id="rr_qtd_filas" class="form-control">
+							</div>
+						</div>
+					</div>
 				</div>
 				<div class="modal-footer">
 					<button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
@@ -128,6 +142,15 @@
 	<script type="text/javascript" src="../includes/jquery.min.js"></script>
 	<script type="text/javascript" src="../includes/bootstrap.min.js"></script>
 	<script type="text/javascript">
+		$("#rr_algoritmo").on('change', function () {
+			if($(this).val() == 'quick'){
+				$("#quickEnable").removeClass("hidden");
+			} else {
+				$("#quickEnable").addClass("hidden");
+			}
+
+		});
+
 		function executarRR() {
 			var qtdNucleos = $("#rr_qtd_nucleos").val();
 			var quantum = $("#rr_quantum").val();
@@ -136,6 +159,12 @@
 			var algoritmo = $("#rr_algoritmo").val();
 
 			var stringDados = "p1="+qtdNucleos+"&p2="+quantum+"&p3="+qtdProcIni+"&p4="+tamanho+"&p5="+algoritmo;
+
+			if (algoritmo == 'quick') {
+				var dadosExtras = "&p6="+$("#rr_intervalo").val()+"&p7="+$("#rr_qtd_filas").val();
+				stringDados += dadosExtras;
+			}
+
 			window.location = "round_robin/index.html?"+stringDados;
 		}
 

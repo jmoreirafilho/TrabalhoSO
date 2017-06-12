@@ -465,6 +465,7 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 	if (g_algoritmo == 'quick') {
 		g_intervalo = new RegExp('[\?&]p6=([^&#]*)').exec(window.location.href)[1];
 		g_qtdListas = new RegExp('[\?&]p7=([^&#]*)').exec(window.location.href)[1];
+		$("#quickEnable").removeClass('hidden');
 	}
 
 	// #3 - Método para parametrizar escalonador

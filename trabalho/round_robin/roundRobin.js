@@ -32,6 +32,8 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 	Scopes.get('RoundRobin').limiteDeProcessamentos = 0;
 	// Fila para ordenar os blocos do quickFit
 	var g_filasDeBlocosOrdenados = [];
+	// Fila para os blocos genericos
+	Scopes.get('RoundRobin').filaDeBlocosGenericos = [];
 
 	// Cria um fila de eventos para controlar concorrência
 	Scopes.get('RoundRobin').g_filaDeEventos = [];

@@ -93,12 +93,26 @@
 		<div class="row hidden" id="quickEnable">
 			<div class="col-xs-12">
 				<h3>Filas de Blocos <small>({{contadorDeProcessamentos}} de {{limiteDeProcessamentos}} processamento)</small></h3>
+				
+				<div class="panel panel-default">
+					<div class="panel-heading">
+						<h3>Fila Genérica de Blocos <small>({{filaDeBlocosGenericos.length}} blocos)</small></h3>
+					</div>
+					<div class="panel-body">
+						<div class="nucleo" ng-class="bloco.colorClass" ng-repeat="bloco in filaDeBlocosGenericos track by $index">
+							{{bloco.tamanho}}b<br />
+							{{bloco.status}}<br />
+							{{bloco.usos}}<span ng-show="bloco.usos > 0">x</span>
+						</div>
+					</div>
+				</div>
+
 				<div class="panel panel-default" ng-repeat="fila in filasDeBlocos track by $index">
 					<div class="panel-heading">
 						<h3>{{fila.tamanho}}<span ng-show="fila.tamanho != 'vazio'">b</span> <small>({{fila.blocos.length}} blocos)</small></h3>
 					</div>
 					<div class="panel-body">
-						<div class="nucleo" ng-class="bloco.colorClass" ng-repeat="bloco in fila.blocos track by $index">
+						<div class="nucleo" ng-class="bloco.colorClass" ng-repeat="bloco in memoria.blocos track by $index">
 							{{bloco.tamanho}}b<br />
 							{{bloco.status}}<br />
 							{{bloco.usos}}<span ng-show="bloco.usos > 0">x</span>

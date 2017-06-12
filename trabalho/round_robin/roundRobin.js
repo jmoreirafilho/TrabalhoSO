@@ -4,7 +4,7 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 	Scopes.store('RoundRobin', $scope);
 
 	// Variaveis globais para parametros iniciais
-	var g_qtdNucleos = g_quantum = g_qtdProcsIniciais = g_tamanhoMemoria = g_intervalo = g_qtdListas = 0;
+	var g_qtdNucleos = g_quantum = g_qtdProcsIniciais = g_tamanhoMemoria = g_qtdListas = 0;
 	var g_algoritmo = "";
 
 	// Variaveis globais para fator de cada fila de prioridade
@@ -25,6 +25,13 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 	Scopes.get('RoundRobin').memoria = {tamanho: null, tamLivre: null, blocos: []};
 	// Fila de abortados
 	Scopes.get('RoundRobin').processosAbortados = [];
+	// Fila de blocos para quickFit
+	Scopes.get('RoundRobin').filasDeBlocos = [];
+	// Contador de processamentos para quickFit
+	Scopes.get('RoundRobin').contadorDeProcessamentos = 0;
+	Scopes.get('RoundRobin').limiteDeProcessamentos = 0;
+	// Fila para ordenar os blocos do quickFit
+	var g_filasDeBlocosOrdenados = [];
 
 	// Cria um fila de eventos para controlar concorrência
 	Scopes.get('RoundRobin').g_filaDeEventos = [];
@@ -69,12 +76,17 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 				if (Scopes.get('RoundRobin').memoria.blocos.length > 0) {
 					// Percorre os blocos
 					var melhorIdAteAgora = null;
+					var melhorTamanho = null;
 					for (var i = 0; i < Scopes.get('RoundRobin').memoria.blocos.length; i++) {
 						// Verifica se esta livre e no tamanho aceitavel
 						if (Scopes.get('RoundRobin').memoria.blocos[i].status == 'livre' &&
 							Scopes.get('RoundRobin').memoria.blocos[i].tamanho >= processo.tamanho) {
-							// grava o id como melhor, por enquanto
-							melhorIdAteAgora = i;
+							// Verifica se o tamanho do processo é ainda menor do que o menor encontrado
+							if (melhorTamanho == null || Scopes.get('RoundRobin').memoria.blocos[i].tamanho < melhorTamanho) {
+								melhorTamanho = Scopes.get('RoundRobin').memoria.blocos[i].tamanho;
+								// grava o id como melhor, por enquanto
+								melhorIdAteAgora = i;
+							}
 						}
 					}
 					if (melhorIdAteAgora == null) {
@@ -463,22 +475,19 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 	g_tamanhoMemoria = new RegExp('[\?&]p4=([^&#]*)').exec(window.location.href)[1];
 	g_algoritmo = new RegExp('[\?&]p5=([^&#]*)').exec(window.location.href)[1];
 	if (g_algoritmo == 'quick') {
-		g_intervalo = new RegExp('[\?&]p6=([^&#]*)').exec(window.location.href)[1];
+		Scopes.get('RoundRobin').limiteDeProcessamentos = new RegExp('[\?&]p6=([^&#]*)').exec(window.location.href)[1];
 		g_qtdListas = new RegExp('[\?&]p7=([^&#]*)').exec(window.location.href)[1];
 		$("#quickEnable").removeClass('hidden');
 	}
 
-	// #3 - Método para parametrizar escalonador
-	Scopes.get('RoundRobin').iniciaRoundRobin = function () {
-		Processa.prototype.iniciaRoundRobin();
-	}
 
-	// #4 - Método para iniciar processamento dos processos
+	// #3 - Watcher que dispara função quando a fila de eventos mudar
 	Scopes.get('RoundRobin').$watch(function () {
 		return Scopes.get('RoundRobin').g_filaDeEventos.length;
 	}, function (newValue, oldValue) {
 		Processa.prototype.executaEventos();
 	});
+	// #4 - Método para iniciar processamento dos processos
 	Scopes.get('RoundRobin').iniciaProcessamento = function () {
 		Processa.prototype.iniciaProcessamento();
 	}
@@ -489,5 +498,5 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 	}
 
 	// #2 - Inicializa o escalonador
-	Scopes.get('RoundRobin').iniciaRoundRobin();
+	Processa.prototype.iniciaRoundRobin();
 });

@@ -334,6 +334,13 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 
 			Scopes.get('RoundRobin').processosAptos[fila].push(processo);
 		}
+
+		if (g_algoritmo == 'quick') {
+			for (var i = 0; i < g_qtdListas; i++) {
+				var blocoVazio = {id: i, tamanho: 'vazio', blocos: []};
+				Scopes.get('RoundRobin').filasDeBlocos.push(blocoVazio);
+			}
+		}
 	};
 
 	Processa.prototype.processaProximo = function(indice) {

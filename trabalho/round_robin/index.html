@@ -93,9 +93,9 @@
 		<div class="row hidden" id="quickEnable">
 			<div class="col-xs-12">
 				<h3>Filas de Blocos <small>({{contadorDeProcessamentos}} de {{limiteDeProcessamentos}} processamento)</small></h3>
-				<div class="panel panel-primary col-xs-12" ng-repeat="fila in filasDeBlocos track by $index">
+				<div class="panel panel-default" ng-repeat="fila in filasDeBlocos track by $index">
 					<div class="panel-heading">
-						<h3>{{fila.tamanho}}b <small>({{fila.blocos.length}} blocos)</small></h3>
+						<h3>{{fila.tamanho}}<span ng-show="fila.tamanho != 'vazio'">b</span> <small>({{fila.blocos.length}} blocos)</small></h3>
 					</div>
 					<div class="panel-body">
 						<div class="nucleo" ng-class="bloco.colorClass" ng-repeat="bloco in fila.blocos track by $index">

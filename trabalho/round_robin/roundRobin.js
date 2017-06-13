@@ -27,7 +27,7 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 	Scopes.get('RoundRobin').processosAbortados = [];
 	// Fila de blocos para quickFit
 	Scopes.get('RoundRobin').filasDeBlocos = [];
-	// Contador de processamentos para quickFit
+	// Contadores de processamentos para quickFit
 	Scopes.get('RoundRobin').contadorDeProcessamentos = 0;
 	Scopes.get('RoundRobin').limiteDeProcessamentos = 0;
 	// Fila para ordenar os blocos do quickFit
@@ -54,6 +54,22 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 				Scopes.get('RoundRobin').memoria.blocos[i].idDoCore = null;
 				// Aumenta tamanho livre
 				Scopes.get('RoundRobin').memoria.tamLivre += Scopes.get('RoundRobin').processosExecutando[idDoCore].tamanho;
+				
+				// Se for quickFit deve mandar o bloco de volta pra sua fila
+				if (g_algoritmo == 'quick') {
+					// Percorre as listas
+					for (var j = 0; j < Scopes.get('RoundRobin').filasDeBlocos.length; j++) {
+						// Verifica se tem alguma lista com esse tamanho
+						if(Scopes.get('RoundRobin').filasDeBlocos[j].tamanho == Scopes.get('RoundRobin').memoria.blocos[i].tamanho) {
+							// Coloca na lista
+							Scopes.get('RoundRobin').filasDeBlocos[j].blocos.push({tamanho: Scopes.get('RoundRobin').memoria.blocos[i].tamanho, idBloco: i});
+							break;
+						}
+					}
+
+					// Não está na lista, coloca na fila generica
+					Scopes.get('RoundRobin').filaDeBlocosGenericos.push({tamanho: Scopes.get('RoundRobin').memoria.blocos[i].tamanho, idBloco: i});
+				}
 			}
 		}
 
@@ -69,6 +85,7 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 				}
 			}
 		}
+
 	}
 
 	Fit.prototype.alocaMemoria = function (idDoCore, processo) {
@@ -105,6 +122,7 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 						Scopes.get('RoundRobin').memoria.blocos[melhorIdAteAgora].status = 'ocupado';
 						Scopes.get('RoundRobin').memoria.blocos[melhorIdAteAgora].colorClass = processo.colorClass;
 						Scopes.get('RoundRobin').memoria.blocos[melhorIdAteAgora].idDoCore = idDoCore;
+						Scopes.get('RoundRobin').memoria.blocos[melhorIdAteAgora].usos++;
 						Scopes.get('RoundRobin').memoria.tamLivre -= processo.tamanho;
 						return true;
 					}
@@ -135,7 +153,7 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 								// Redefine tamanho do bloco
 								Scopes.get('RoundRobin').memoria.blocos[i].tamanho = processo.tamanho;
 								// Cria novo bloco
-								var novoBloco = {tamanho: tamanhoRestante, status: 'livre', colorClass: processo.colorClass, idDoCore: null};
+								var novoBloco = {tamanho: tamanhoRestante, status: 'livre', colorClass: processo.colorClass, idDoCore: null, usos: Number(0)};
 								// Adiciona novo bloco na memoria
 								Scopes.get('RoundRobin').memoria.blocos.push(novoBloco);
 							}
@@ -143,6 +161,7 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 							Scopes.get('RoundRobin').memoria.blocos[i].status = 'ocupado';
 							Scopes.get('RoundRobin').memoria.blocos[i].colorClass = processo.colorClass;
 							Scopes.get('RoundRobin').memoria.blocos[i].idDoCore = idDoCore;
+							Scopes.get('RoundRobin').memoria.blocos[i].usos++;
 							Scopes.get('RoundRobin').memoria.tamLivre -= processo.tamanho;
 							return true;
 						}
@@ -167,6 +186,195 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 					return true; // Criou o bloco
 				}
 				break;
+			case 'quick':
+				// Incrementa os processamentos
+				Scopes.get('RoundRobin').contadorDeProcessamentos++;
+				// Se for necessario, recalcula a lista
+				if (Scopes.get('RoundRobin').contadorDeProcessamentos > Scopes.get('RoundRobin').limiteDeProcessamentos) {
+					// Reseta o contador
+					Scopes.get('RoundRobin').contadorDeProcessamentos = 0;
+					// Redefine a fila dos blocos ordenados
+					// Cria variavel temporaria e coloca blocos livres
+					var blocosTemp = [];
+
+					for (var i = 0; i < Scopes.get('RoundRobin').memoria.blocos.length; i++) {
+						if(Scopes.get('RoundRobin').memoria.blocos[i].status == 'livre') {
+							blocosTemp.push({bloco: Scopes.get('RoundRobin').memoria.blocos[i], idBloco: i});
+						}
+					}
+
+					// Cria variavel auxiliar e agrupa por tamanho
+					var blocosAux = [];
+					// Percorre os blocos, agrupando-os por tamanho
+					for (var j = 0; j < blocosTemp.length; j++) {
+						// Busca outros blocos iguais a este
+						blocosAux[j] = {tamanho: blocosTemp[j].bloco.tamanho, usos: blocosTemp[j].bloco.usos, idBlocos: []};
+						blocosAux[j].idBlocos.push(blocosTemp[j].idBloco);
+						// Busca em todos os blocos
+						for (var l = 0; l < blocosTemp.length; l++) {
+							// Se tiver mesmo tamamho e idBloco diferente
+							if(blocosTemp[j].bloco.tamanho == blocosTemp[l].bloco.tamanho &&
+								blocosTemp[j].idBlocos != blocosTemp[l].idBlocos) {
+								// Adiciona no auxiliar
+								blocosAux[j].idBlocos.push(blocosTemp[l].idBloco);
+								// Incrementa usos
+								blocosAux[j].usos += blocosAux[j].usos;
+							}
+						}
+					}
+
+					// Esvazia as filas ordenadas
+					g_filasDeBlocosOrdenados = [];
+					// Um loop para cada lista
+					for (var i = 0; i < g_qtdListas; i++) {
+						var idDoMaisUsado = null;
+						var qtdUsos = 0;
+						
+						// Busca maior quantidade de usos
+						for (var j = 0; j < blocosAux.length; j++) {
+							if (idDoMaisUsado == null) {
+								idDoMaisUsado = j;
+								qtdUsos = blocosAux[j].usos;
+							} else 
+							if(qtdUsos < blocosAux[j].usos){
+								idDoMaisUsado = j;
+								qtdUsos = blocosAux[j].usos;
+							}
+						}
+
+						// Adiciona todos os blocos, de maneira ordenada
+						g_filasDeBlocosOrdenados.push({tamanho: blocosAux[idDoMaisUsado].tamanho, usos: blocosAux[idDoMaisUsado].usos, ids: blocosAux[idDoMaisUsado].idBlocos});
+						// Remove o que foi utilizado
+						blocosAux.splice(idDoMaisUsado, 1);
+						if (i >= blocosAux.length) {
+							break;
+						}
+					}
+
+					// repinta, na tela
+					Scopes.get('RoundRobin').filasDeBlocos = [];
+					for (var i = 0; i < g_filasDeBlocosOrdenados.length; i++) {
+						var fila = {tamanho: g_filasDeBlocosOrdenados[i].tamanho, usos: g_filasDeBlocosOrdenados[i].usos, blocos: []};
+						Scopes.get('RoundRobin').filasDeBlocos.push(fila);
+						for (var j = 0; j < g_filasDeBlocosOrdenados[i].ids.length; j++) {
+							var id = g_filasDeBlocosOrdenados[i].ids[j];
+							Scopes.get('RoundRobin').filasDeBlocos[i].blocos.push({tamanho: Scopes.get('RoundRobin').memoria.blocos[id].tamanho, idBloco: id});
+						}
+					}
+					
+					// Pinta a fila generica
+					Scopes.get('RoundRobin').filaDeBlocosGenericos = [];
+					for (var i = 0; i < blocosAux.length; i++) {
+						if(i >= g_filasDeBlocosOrdenados.length) {
+							break;
+						}
+						for (var j = 0; j < blocosAux[i].idBlocos.length; j++) {
+							var id = g_filasDeBlocosOrdenados[i].ids[j];
+							Scopes.get('RoundRobin').filaDeBlocosGenericos.push({tamanho: Scopes.get('RoundRobin').memoria.blocos[id].tamanho, idBloco: id});
+						}
+					}
+				}
+
+				// Inicia a logica
+
+				// Verifica se tem filas
+				if (Scopes.get('RoundRobin').filasDeBlocos.length > 0) {
+					// Verifica se tem alguma fila para esse processo
+					for (var i = 0; i < Scopes.get('RoundRobin').filasDeBlocos.length; i++) {
+						// Verifica o tamanho e a quantidade de blocos nessa fila
+						if(Scopes.get('RoundRobin').filasDeBlocos[i].tamanho == processo.tamanho &&
+							Scopes.get('RoundRobin').filasDeBlocos[i].blocos.length > 0) {
+							// Aloca o primeiro bloco
+							var id = Scopes.get('RoundRobin').filasDeBlocos[i].blocos[0].idBloco;
+							Scopes.get('RoundRobin').memoria.blocos[id].status = 'ocupado';
+							Scopes.get('RoundRobin').memoria.blocos[id].colorClass = processo.colorClass;
+							Scopes.get('RoundRobin').memoria.blocos[id].idDoCore = idDoCore;
+							Scopes.get('RoundRobin').memoria.blocos[id].usos++;
+							// Tira o bloco da fila generica
+							Scopes.get('RoundRobin').filasDeBlocos[i].blocos.splice(0, 1);
+							return true;
+						}
+					}
+				}
+
+				// Se chegar aqui, verifica se tem algum bloco na fila generica
+				if (Scopes.get('RoundRobin').filaDeBlocosGenericos.length > 0) {
+					for (var i = 0; i < Scopes.get('RoundRobin').filaDeBlocosGenericos.length; i++) {
+						// First Fit
+						if(Scopes.get('RoundRobin').filaDeBlocosGenericos[i].tamanho >= processo.tamanho){
+							// Aloca o bloco
+							var id = Scopes.get('RoundRobin').filaDeBlocosGenericos[i].idBloco;
+							
+							Scopes.get('RoundRobin').memoria.blocos[id].status = 'ocupado';
+							Scopes.get('RoundRobin').memoria.blocos[id].colorClass = processo.colorClass;
+							Scopes.get('RoundRobin').memoria.blocos[id].idDoCore = idDoCore;
+							Scopes.get('RoundRobin').memoria.blocos[id].usos++;
+							// Tira o bloco da fila generica
+							Scopes.get('RoundRobin').filaDeBlocosGenericos.splice(i, 1);
+							return true;
+						}
+					}
+					// Nao achou nenhum bloco que caiba, cria bloco
+					// Cria novo bloco
+					if (!Fit.prototype.criaNovoBloco(processo.tamanho, processo.colorClass, idDoCore)) {
+						// Não criou o bloco, aborta!
+						Processa.prototype.abortaProcesso(idDoCore);
+						return false;
+					}
+					return true;
+				} else {
+					// Cria novo bloco
+					if (!Fit.prototype.criaNovoBloco(processo.tamanho, processo.colorClass, idDoCore)) {
+						// Não criou o bloco, aborta!
+						Processa.prototype.abortaProcesso(idDoCore);
+						return false;
+					}
+					return true;
+				}
+
+				// Se tiver algum bloco criado, pode usar os blocos
+				if (Scopes.get('RoundRobin').memoria.blocos.length > 0) {
+					// Verifica se tem blocos livres disponiveis
+					if (Scopes.get('RoundRobin').filasDeBlocos.length > 0) {
+						// Busca na filaDeBlocos se ja tem esse cara.
+						for (var i = 0; i < Scopes.get('RoundRobin').filasDeBlocos.length; i++) {
+							// Verifica que a fila é do tamanho necessario
+							if (Scopes.get('RoundRobin').filasDeBlocos[i].tamanho == processo.tamanho) {
+								// Aloca esse bloco que esta vazio e aloca nele.
+								return true;
+							}
+						}
+					}
+
+					// Não tem blocos livres disponiveis, firstFit na fila generica
+
+					// Percorre os blocos genericos
+					for (var i = 0; i < Scopes.get('RoundRobin').filaDeBlocosGenericos.length; i++) {
+						// Se for maior ou igual, pega o bloco
+						if(Scopes.get('RoundRobin').filaDeBlocosGenericos[i].tamanho >= processo.tamanho) {
+							// Aloca Scopes.get('RoundRobin').filaDeBlocosGenericos[i].idBloco
+							return true;
+						}
+					}
+
+					// Cria novo bloco
+					if (!Fit.prototype.criaNovoBloco(processo.tamanho, processo.colorClass, idDoCore)) {
+						// Não criou o bloco, aborta!
+						Processa.prototype.abortaProcesso(idDoCore);
+						return false;
+					}
+					return true; // Criou o bloco
+
+				} else {
+					// Cria novo bloco
+					if (!Fit.prototype.criaNovoBloco(processo.tamanho, processo.colorClass, idDoCore)) {
+						// Não criou o bloco, aborta!
+						Processa.prototype.abortaProcesso(idDoCore);
+						return false;
+					}
+					return true; // Criou o bloco
+				}
+				break;
 		}
 	}
 
@@ -176,7 +384,7 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 			return false;
 		}
 
-		var novoBloco = {tamanho: tamanho, status: 'ocupado', colorClass: colorClass, idDoCore: idDoCore};
+		var novoBloco = {tamanho: tamanho, status: 'ocupado', colorClass: colorClass, idDoCore: idDoCore, usos: Number(0)};
 		Scopes.get('RoundRobin').memoria.blocos.push(novoBloco);
 		Scopes.get('RoundRobin').memoria.tamLivre -= tamanho;
 		return true; // Criou o bloco
@@ -335,13 +543,6 @@ angular.module('view').controller('viewController', function ($scope, Scopes) {
 			};
 
 			Scopes.get('RoundRobin').processosAptos[fila].push(processo);
-		}
-
-		if (g_algoritmo == 'quick') {
-			for (var i = 0; i < g_qtdListas; i++) {
-				var blocoVazio = {id: i, tamanho: 'vazio', blocos: []};
-				Scopes.get('RoundRobin').filasDeBlocos.push(blocoVazio);
-			}
 		}
 	};
 
